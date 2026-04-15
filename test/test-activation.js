@@ -122,7 +122,11 @@ try {
 
   if (fs.existsSync(frontendPath)) {
     const content = fs.readFileSync(frontendPath, "utf8");
-    if (content.includes("CLIProxy Activator") && content.includes("yunyi.cfd")) {
+    if (
+      content.includes("CLIProxy Activator") &&
+      content.includes('url=/user/') &&
+      content.includes('href="/user/"')
+    ) {
       console.log("✓ Frontend HTML exists and contains expected content");
     } else {
       console.log("✗ Frontend HTML missing expected content");

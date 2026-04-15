@@ -1,81 +1,127 @@
 # CLIProxy Activator
 
-`cliproxy-activator` is a CLI tool for activating Claude Code and Codex against CLIProxyAPI.
+One-command activator for CLIProxyAPI. It supports Codex and Claude Code activation, node testing, config backup and restore, and a local web UI for operations.
 
-## Features
+## Highlights
 
-- ✅ Activation code verification
-- ✅ Node testing and selection
-- ✅ Configuration backup and restore
-- ✅ Support for Claude Code and Codex
-- ✅ Interactive menu
-- ✅ Web UI interface
+- Interactive CLI for common activation tasks
+- Activation flow for Codex and Claude Code
+- Node testing before switching config
+- Backup and restore for local config files
+- Local web UI for user actions and admin management
+- Plain Node.js implementation with no framework lock-in
 
-## Installation
+## Requirements
+
+- Node.js 16 or newer
+
+## Install
+
+Clone the repository and install dependencies:
 
 ```bash
-npm install -g cliproxy-activator
+git clone https://github.com/FogMaly/cliproxy-activator.git
+cd cliproxy-activator
+npm install
 ```
 
-## Usage
+If you want the CLI command globally on your machine:
 
-### Interactive Mode
+```bash
+npm link
+```
+
+## Quick Start
+
+Open the interactive menu:
 
 ```bash
 cliproxy-activator
 ```
 
-### Command Line Mode
+Or run from the repo directly:
 
-Activate a service:
 ```bash
-cliproxy-activator activate --service claude --code YOUR_ACTIVATION_CODE
+node bin/cli.js
+```
+
+Activate Codex:
+
+```bash
 cliproxy-activator activate --service codex --code YOUR_ACTIVATION_CODE
 ```
 
+Activate Claude Code:
+
+```bash
+cliproxy-activator activate --service claude --code YOUR_ACTIVATION_CODE
+```
+
 Test nodes:
+
 ```bash
 cliproxy-activator test
 ```
 
-Restore backup:
+Restore a backup:
+
 ```bash
 cliproxy-activator restore --service claude
 ```
 
-### Web UI
+## Web UI
 
-Open `frontend/index.html` in your browser for a graphical interface.
+Start the local web server:
 
-Start the web server:
 ```bash
 npm run web
 ```
 
-Then visit: http://localhost:34010
+Default endpoints:
+
+- User UI: `http://localhost:34010/`
+- Admin UI: `http://localhost:34010/admin/`
+
+Relevant environment variables:
+
+- `PORT`: override the default port `34010`
+- `ADMIN_PASSWORD`: override the default admin password `admin123`
+- `SERVER_TIMEZONE`: override the default timezone `Asia/Shanghai`
+
+## Commands
+
+```text
+cliproxy-activator
+cliproxy-activator interactive
+cliproxy-activator activate --service <claude|codex> --code <activation-code>
+cliproxy-activator test
+cliproxy-activator restore --service <claude|codex>
+```
 
 ## Project Layout
 
-- `bin/` - CLI and Web server entry points
-- `lib/` - Core command, config, and service logic
-- `frontend/` - Static frontend files
-- `data/` - Local JSON data
-- `test/` - Test scripts
-- `docs/` - Guides, delivery notes, and reports
-- `scripts/` - Utility scripts for demo, startup, restart, and diagnostics
-- `artifacts/` - Generated package artifacts
+- `bin/`: CLI and web server entry points
+- `lib/`: command and service implementation
+- `frontend/`: static frontend assets
+- `docs/`: implementation notes and delivery documents
+- `scripts/`: helper scripts
+- `test/`: lightweight test scripts
+- `data/`: local runtime data, intentionally not committed
 
-## Example Activation Codes
-
-- Codex: `K1DHPY3P-4B2W-F1A4-DC4P-Y74TCQZXPNYT`
-- Claude: `N6P3BDX4-VCGH-T7MT-EX6J-3SYHEC8RXYX7`
-
-## Configuration Paths
+## Config Paths
 
 - Claude Code: `~/.claude/config.json`
 - Codex: `~/.codex/config.json`
 - Backups: `~/.cliproxy-activator/backups/`
 
-## API Integration
+## Development
 
-This tool integrates with https://yunyi.cfd/user/ for activation code verification and node management.
+Run the included test script:
+
+```bash
+npm test
+```
+
+## License
+
+MIT. See `LICENSE`.
