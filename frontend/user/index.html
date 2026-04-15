@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="silk">
+  <head>
+    <meta charset="UTF-8" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z'%3E%3C/path%3E%3C/svg%3E"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CLIProxy - API 使用监控</title>
+    <meta name="description" content="CLIProxy API 使用量监控平台" />
+    <script>
+      // 阻塞式主题初始化 — 防止 FOUC + 设置内联背景色
+      ;(function () {
+        var t = localStorage.getItem('yunyi_user_theme') || 'system'
+        var d = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+        var el = document.documentElement
+        if (d) {
+          el.classList.add('dark')
+          el.style.colorScheme = 'dark'
+          el.style.backgroundColor = 'hsl(240, 10%, 3.9%)'
+        } else {
+          el.style.backgroundColor = 'hsl(210, 40%, 98%)'
+        }
+      })()
+    </script>
+    <script type="module" crossorigin src="assets/index-Da98HOxL.js"></script>
+    <link rel="modulepreload" crossorigin href="assets/chart-vendor-CULJE59K.js">
+    <link rel="stylesheet" crossorigin href="assets/index-B8QSyYhS.css">
+  </head>
+  <body class="min-h-screen">
+    <div id="app">
+      <!-- 纯 CSS 加载占位，Vue 挂载后自动替换 -->
+      <div style="display:flex;align-items:center;justify-content:center;height:100vh;opacity:0.4">
+        <svg width="24" height="24" viewBox="0 0 24 24" style="animation:_s .8s linear infinite">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"
+                  stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <style>@keyframes _s{to{transform:rotate(360deg)}}</style>
+    </div>
+  </body>
+</html>

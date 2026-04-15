@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配色方案测试 | CLIProxy Activator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "background": "hsl(210, 40%, 98%)",
+                        "surface": "hsl(210, 40%, 98%)",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "hsl(210, 40%, 96%)",
+                        "surface-container": "hsl(210, 30%, 94%)",
+                        "surface-container-high": "hsl(210, 25%, 92%)",
+                        "primary": "hsl(210, 100%, 50%)",
+                        "on-surface": "hsl(210, 10%, 15%)",
+                        "on-surface-variant": "hsl(210, 8%, 45%)",
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .dark .bg-background { background-color: hsl(240, 10%, 3.9%) !important; }
+        .dark .bg-surface { background-color: hsl(240, 10%, 3.9%) !important; }
+        .dark .bg-surface-container-lowest { background-color: hsl(240, 10%, 6%) !important; }
+        .dark .bg-surface-container-low { background-color: hsl(240, 10%, 8%) !important; }
+        .dark .bg-surface-container { background-color: hsl(240, 10%, 10%) !important; }
+        .dark .text-on-surface { color: hsl(0, 0%, 95%) !important; }
+        .dark .text-on-surface-variant { color: hsl(0, 0%, 70%) !important; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold">配色方案测试</h1>
+            <button onclick="toggleTheme()" class="px-4 py-2 bg-primary text-white rounded-lg">
+                切换主题
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 背景色卡片 -->
+            <div class="bg-surface-container-lowest p-6 rounded-2xl">
+                <h2 class="text-xl font-bold mb-4">背景色层级</h2>
+                <div class="space-y-3">
+                    <div class="bg-surface p-4 rounded-lg">
+                        <p class="text-sm font-medium">Surface (基础)</p>
+                        <p class="text-xs text-on-surface-variant">hsl(210, 40%, 98%)</p>
+                    </div>
+                    <div class="bg-surface-container-lowest p-4 rounded-lg">
+                        <p class="text-sm font-medium">Container Lowest</p>
+                        <p class="text-xs text-on-surface-variant">#ffffff</p>
+                    </div>
+                    <div class="bg-surface-container-low p-4 rounded-lg">
+                        <p class="text-sm font-medium">Container Low</p>
+                        <p class="text-xs text-on-surface-variant">hsl(210, 40%, 96%)</p>
+                    </div>
+                    <div class="bg-surface-container p-4 rounded-lg">
+                        <p class="text-sm font-medium">Container</p>
+                        <p class="text-xs text-on-surface-variant">hsl(210, 30%, 94%)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主色卡片 -->
+            <div class="bg-surface-container-lowest p-6 rounded-2xl">
+                <h2 class="text-xl font-bold mb-4">主色系统</h2>
+                <div class="space-y-3">
+                    <div class="bg-primary text-white p-4 rounded-lg">
+                        <p class="text-sm font-medium">Primary</p>
+                        <p class="text-xs opacity-90">hsl(210, 100%, 50%)</p>
+                    </div>
+                    <div class="p-4 rounded-lg border-2 border-primary">
+                        <p class="text-sm font-medium text-primary">Primary Border</p>
+                        <p class="text-xs text-on-surface-variant">用于边框和强调</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文字颜色 -->
+            <div class="bg-surface-container-lowest p-6 rounded-2xl">
+                <h2 class="text-xl font-bold mb-4">文字颜色</h2>
+                <div class="space-y-3">
+                    <p class="text-on-surface text-lg">主要文字 (on-surface)</p>
+                    <p class="text-on-surface-variant">次要文字 (on-surface-variant)</p>
+                    <p class="text-on-surface-variant text-sm">辅助说明文字</p>
+                </div>
+            </div>
+
+            <!-- 示例卡片 -->
+            <div class="bg-surface-container-lowest p-6 rounded-2xl">
+                <h2 class="text-xl font-bold mb-4">示例组件</h2>
+                <div class="space-y-3">
+                    <button class="w-full px-4 py-3 bg-primary text-white rounded-lg font-medium hover:opacity-90">
+                        主要按钮
+                    </button>
+                    <button class="w-full px-4 py-3 bg-surface-container text-on-surface rounded-lg font-medium hover:bg-surface-container-high">
+                        次要按钮
+                    </button>
+                    <input type="text" placeholder="输入框示例" class="w-full px-4 py-3 bg-surface-container-low rounded-lg border-none outline-none focus:ring-2 ring-primary/20">
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-surface-container-lowest p-6 rounded-2xl">
+            <h2 class="text-xl font-bold mb-4">配色说明</h2>
+            <div class="space-y-2 text-sm text-on-surface-variant">
+                <p>✅ 浅色模式：使用 hsl(210, 40%, 98%) 作为基础背景色，营造清爽的蓝灰色调</p>
+                <p>✅ 深色模式：使用 hsl(240, 10%, 3.9%) 作为基础背景色，提供舒适的深色体验</p>
+                <p>✅ 主色：hsl(210, 100%, 50%) 明亮的蓝色，用于强调和交互元素</p>
+                <p>✅ 与用户端页面完全统一的配色体系</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+            }
+        }
+    </script>
+</body>
+</html>
