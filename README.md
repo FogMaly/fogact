@@ -1,25 +1,10 @@
 # FogIDC Activator
 
-FogIDC multi-platform activator. It supports Codex, Claude Code, OpenCode and OpenClaw activation, node testing, config backup and restore, and a local web UI for operations.
+FogIDC Activator is a multi-platform activation helper for Codex, Claude Code, OpenCode and OpenClaw. It provides one-command VPS bootstrap, activation-code based setup, direct NewAPI key setup, config backup/restore, and a local Web UI.
 
-## Highlights
+## 🚀 One-command Install
 
-- Interactive CLI for common activation tasks
-- Activation flow for Codex and Claude Code
-- Node testing before switching config
-- Backup and restore for local config files
-- Local web UI for user actions and admin management
-- Plain Node.js implementation with no framework lock-in
-
-## Requirements
-
-- Node.js 16 or newer
-
-## One-command VPS Install
-
-For a clean VPS, run the GitHub bootstrap script. It installs Node.js when missing, installs the latest npm package, and can optionally activate a target platform.
-
-Install only:
+Copy this command on a clean VPS. It can install Node.js automatically when missing, install the latest `fogidc-activator` npm package, and prepare the CLI without requiring git or npx.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh
@@ -34,7 +19,16 @@ curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/ins
   --cliproxy-api-base https://your-activator.example.com
 ```
 
-Install and activate with a direct NewAPI key:
+Install and activate Claude Code with an activation code:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- \
+  --service claude \
+  --code YOUR_ACTIVATION_CODE \
+  --cliproxy-api-base https://your-activator.example.com
+```
+
+Install and activate directly with a NewAPI key:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- \
@@ -49,78 +43,83 @@ Start the local Web UI after install:
 curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- --web
 ```
 
-If you want to install directly from GitHub source instead of npm, add `--method github`.
+> Minimum bootstrap requirement: the machine needs `curl` or `wget` to download the script. The script handles Node.js/npm installation on common Linux distributions.
 
-## Install
+## What It Does
 
-Clone the repository and install dependencies:
+- Installs and exposes `fogidc-activator`, `cliproxy-activator`, `fogidc-web`, and `cliproxy-web` commands.
+- Activates Codex CLI and Claude Code by writing their local config files.
+- Optionally configures OpenCode, OpenClaw, VSCode Codex plugin, and Cursor Codex plugin when selected or detected.
+- Reads activation-code capabilities so users only see supported services/platforms.
+- Verifies direct NewAPI keys through `/v1/models` before writing config.
+- Backs up existing config before writing changes.
+- Provides a local Web UI for users, admin management, activation codes, and settings.
+
+## Supported Targets
+
+| Target | Service | Default behavior |
+| --- | --- | --- |
+| Codex CLI | Codex | Creates `~/.codex/config.toml` and `~/.codex/auth.json` |
+| Claude Code | Claude | Creates `~/.claude/settings.json` and `~/.claude.json` |
+| OpenCode | Codex / Claude | Configures when installed or selected with `--all` / `--platforms` |
+| OpenClaw | Codex / Claude | Configures when installed or selected with `--all` / `--platforms` |
+| VSCode Codex plugin | Codex | Patches only when compatible plugin files are detected |
+| Cursor Codex plugin | Codex | Patches only when compatible plugin files are detected |
+
+## Install Options
+
+### npm
+
+```bash
+npm install -g fogidc-activator
+fogidc-activator --help
+```
+
+### GitHub source
 
 ```bash
 git clone https://github.com/FogMaly/cliproxy-activator.git
-cd fogidc-activator
+cd cliproxy-activator
 npm install
+node bin/cli.js --help
 ```
 
-If you want the CLI command globally on your machine:
+### GitHub bootstrap from source
+
+The bootstrap installs from npm by default. To clone and run directly from GitHub source instead:
 
 ```bash
-npm link
+curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- --method github
 ```
 
-## Quick Start
+## Activation Usage
 
-Configure your upstream NewAPI endpoint first:
+### Activation code / CDK mode
 
 ```bash
-cp config/upstream.example.json config/upstream.json
+export CLIPROXY_API_BASE="https://your-activator.example.com"
+fogidc-activator wizard --code YOUR_ACTIVATION_CODE --yes
 ```
 
-Edit `config/upstream.json` and set:
-
-- `baseUrl`: your upstream NewAPI base URL
-- `apiKey`: your upstream NewAPI key
-
-You can also use environment variables instead:
+Activate a specific service:
 
 ```bash
-export NEWAPI_BASE_URL="https://newapi.example.com"
-export NEWAPI_API_KEY="sk-your-upstream-key"
-```
-
-Open the FogIDC-style multi-platform activation wizard:
-
-```bash
-fogidc-activator
-```
-
-Or run from the repo directly:
-
-```bash
-node bin/cli.js
-```
-
-Activate Codex:
-
-```bash
-fogidc-activator activate --service codex --yes
-```
-
-Activate Claude Code:
-
-```bash
-fogidc-activator activate --service claude --yes
+fogidc-activator wizard --service codex --code YOUR_ACTIVATION_CODE --yes
+fogidc-activator wizard --service claude --code YOUR_ACTIVATION_CODE --yes
 ```
 
 Activate selected platforms only:
 
 ```bash
-fogidc-activator wizard --service codex --platforms codex-cli,opencode
+fogidc-activator wizard --service codex --platforms codex-cli,opencode --yes
 ```
 
-Use an activation / redeem code. The wizard reads the code capability first and only shows the supported service and platforms:
+### Direct NewAPI mode
 
 ```bash
-fogidc-activator wizard --code YOUR_ACTIVATION_CODE
+export NEWAPI_BASE_URL="https://newapi.example.com"
+export NEWAPI_API_KEY="sk-your-upstream-key"
+fogidc-activator activate --service codex --yes
 ```
 
 Skip upstream verification for local dry-runs:
@@ -129,27 +128,21 @@ Skip upstream verification for local dry-runs:
 fogidc-activator activate --service codex --api-key sk-test --yes --skip-verify
 ```
 
-Legacy activation-code mode is still available:
+Legacy node-switching activation-code mode is still available:
 
 ```bash
 fogidc-activator activate --service codex --code YOUR_ACTIVATION_CODE --legacy
 ```
 
-Test nodes:
-
-```bash
-fogidc-activator test
-```
-
-Restore a backup:
-
-```bash
-fogidc-activator restore --service claude
-```
-
 ## Web UI
 
-Start the local web server:
+Start the local Web UI:
+
+```bash
+fogidc-web
+```
+
+Or from this repository:
 
 ```bash
 npm run web
@@ -160,13 +153,14 @@ Default endpoints:
 - User UI: `http://localhost:34020/`
 - Admin UI: `http://localhost:34020/admin/`
 
-Relevant environment variables:
+Useful environment variables:
 
 - `PORT`: override the default port `34020`
 - `ADMIN_PASSWORD`: override the default admin password `admin123`
 - `SERVER_TIMEZONE`: override the default timezone `Asia/Shanghai`
 - `NEWAPI_BASE_URL`: upstream NewAPI base URL for CLI activation
 - `NEWAPI_API_KEY`: upstream NewAPI key for CLI activation
+- `CLIPROXY_API_BASE`: activation-code backend URL for CLI code mode
 - `CLIPROXY_UPSTREAM_CONFIG`: custom path for upstream config JSON
 - `FOGIDC_BACKUP_DIR`: custom backup directory for activation config backups
 
@@ -180,11 +174,12 @@ fogidc-activator activate --service <claude|codex> [--api-key <key>] [--yes]
 fogidc-activator activate --service <claude|codex> --code <activation-code> --legacy
 fogidc-activator test
 fogidc-activator restore --service <claude|codex>
+fogidc-web
 ```
 
 ## Activation Code Capabilities
 
-The wizard is ready for capability-scoped activation codes. A future code verification API can return fields such as `service`, `services`, `platforms`, `targets`, or `capabilities`; the CLI normalizes them and filters the activation choices automatically.
+The wizard supports capability-scoped activation codes. The code verification API can return fields such as `service`, `services`, `platforms`, `targets`, or `capabilities`; the CLI normalizes them and filters activation choices automatically.
 
 Examples:
 
@@ -198,32 +193,32 @@ Examples:
 
 Supported platform ids are `codex-cli`, `claude-code`, `opencode`, `openclaw`, `vscode-codex-plugin`, and `cursor-codex-plugin`.
 
-## Project Layout
-
-- `bin/`: CLI and web server entry points
-- `lib/`: command and service implementation
-- `frontend/`: static frontend assets
-- `docs/`: implementation notes and delivery documents
-- `scripts/`: helper scripts
-- `test/`: lightweight test scripts
-- `data/`: local runtime data, intentionally not committed
-
 ## Config Paths
 
-- Claude Code: `~/.claude/config.json`
+- Codex CLI: `~/.codex/config.toml` and `~/.codex/auth.json`
 - Claude Code: `~/.claude/settings.json` and `~/.claude.json`
-- Codex: `~/.codex/config.toml` and `~/.codex/auth.json`
-- OpenCode: `~/.config/opencode/opencode.json` if already installed
-- OpenClaw: `~/.openclaw/openclaw.json` if already installed
+- OpenCode: `~/.config/opencode/opencode.json`
+- OpenClaw: `~/.openclaw/openclaw.json`
 - Backups: `~/.fogidc-activator/backups/`
 
 ## Development
 
-Run the included test script:
-
 ```bash
+npm install
 npm test
+npm run web
 ```
+
+Project layout:
+
+- `bin/`: CLI and web server entry points
+- `lib/`: command, service, platform and config implementation
+- `frontend/`: static frontend assets
+- `install.sh`: clean VPS bootstrap installer
+- `docs/`: implementation notes and delivery documents
+- `scripts/`: helper scripts
+- `test/`: lightweight test scripts
+- `data/`: local runtime data, intentionally not committed
 
 ## License
 
