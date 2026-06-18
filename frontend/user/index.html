@@ -10,6 +10,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CLIProxy - API 使用监控</title>
     <meta name="description" content="CLIProxy API 使用量监控平台" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <script>
       // 阻塞式主题初始化 — 防止 FOUC + 设置内联背景色
       ;(function () {
@@ -28,8 +31,10 @@
     <script type="module" crossorigin src="assets/index-Da98HOxL.js"></script>
     <link rel="modulepreload" crossorigin href="assets/chart-vendor-CULJE59K.js">
     <link rel="stylesheet" crossorigin href="assets/index-B8QSyYhS.css">
+    <link rel="stylesheet" href="/assets/market-ui.css?v=20260616-upstream2" />
   </head>
-  <body class="min-h-screen">
+  <body class="market-user min-h-screen">
+    <span class="market-mouse-light" aria-hidden="true"></span>
     <div id="app">
       <!-- 纯 CSS 加载占位，Vue 挂载后自动替换 -->
       <div style="display:flex;align-items:center;justify-content:center;height:100vh;opacity:0.4">
@@ -40,5 +45,23 @@
       </div>
       <style>@keyframes _s{to{transform:rotate(360deg)}}</style>
     </div>
+    <script>
+      let marketPointerRaf = 0
+      window.addEventListener('load', function () {
+        requestAnimationFrame(function () {
+          document.body.classList.add('motion-ready')
+        })
+      }, { once: true })
+
+      window.addEventListener('pointermove', function (event) {
+        if (marketPointerRaf) return
+        marketPointerRaf = requestAnimationFrame(function () {
+          document.body.classList.add('is-pointer-active')
+          document.body.style.setProperty('--cursor-x', event.clientX + 'px')
+          document.body.style.setProperty('--cursor-y', event.clientY + 'px')
+          marketPointerRaf = 0
+        })
+      })
+    </script>
   </body>
 </html>

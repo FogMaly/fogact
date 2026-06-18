@@ -6,8 +6,11 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { userDb, codeDb, initializeSampleData } = require("../lib/services/database");
+const { DEFAULT_CONFIG_PATH, loadUpstreamConfig } = require("../lib/config/upstream");
+const { readJsonFile, writeJsonFile } = require("../lib/utils/json-file");
+const { maskKey, verifyNewApiKey } = require("../lib/services/newapi");
 
-const PORT = process.env.PORT || 34010;
+const PORT = process.env.PORT || 34020;
 const FRONTEND_DIR = path.join(__dirname, "..", "frontend");
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const SERVER_TIMEZONE = process.env.SERVER_TIMEZONE || "Asia/Shanghai";
@@ -127,6 +130,8 @@ function normalizeService(service, fallback = "Claude Code") {
   const value = String(service).trim().toLowerCase();
   const serviceMap = {
     claude: "Claude Code",
+    claudecode: "Claude Code",
+    "claude-code": "Claude Code",
     "claude code": "Claude Code",
     codex: "Codex",
     gpt: "GPT",
@@ -136,6 +141,19 @@ function normalizeService(service, fallback = "Claude Code") {
   };
 
   return serviceMap[value] || String(service).trim();
+}
+
+function getServiceKey(service, fallback = "claude") {
+  const normalized = normalizeService(service, fallback === "codex" ? "Codex" : "Claude Code");
+  const value = String(normalized || "").trim().toLowerCase();
+  if (value.includes("codex")) return "codex";
+  if (value.includes("claude")) return "claude";
+  return String(service || fallback || "").trim().toLowerCase().replace(/\s+/g, "-") || fallback;
+}
+
+function serviceMatches(item, service) {
+  if (!service || service === "all") return true;
+  return getServiceKey(item.service) === getServiceKey(service);
 }
 
 function normalizeCodeStatus(codeOrStatus, expiresAt) {
@@ -168,10 +186,12 @@ function getCodeStatusLabel(status) {
 
 function serializeUser(user) {
   const status = normalizeUserStatus(user.status);
+  const service = normalizeService(user.service);
   return {
     ...user,
-    service: normalizeService(user.service),
-    serviceLabel: normalizeService(user.service),
+    service,
+    serviceKey: getServiceKey(service),
+    serviceLabel: service,
     status,
     statusLabel: status,
     statusKey: getUserStatusKey(status),
@@ -180,13 +200,78 @@ function serializeUser(user) {
 
 function serializeCode(code) {
   const status = normalizeCodeStatus(code);
+  const service = normalizeService(code.service);
   return {
     ...code,
-    service: normalizeService(code.service),
-    serviceLabel: normalizeService(code.service),
+    service,
+    serviceKey: getServiceKey(service),
+    serviceLabel: service,
+    allowedModels: code.allowedModels || (getServiceKey(service) === "codex" ? ["codex"] : ["claude"]),
     status,
     statusLabel: getCodeStatusLabel(status),
     isExpired: status === "expired",
+  };
+}
+
+function trimTrailingSlash(value) {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function getUpstreamConfigPath() {
+  return process.env.CLIPROXY_UPSTREAM_CONFIG || DEFAULT_CONFIG_PATH;
+}
+
+function readRawUpstreamConfig() {
+  return readJsonFile(getUpstreamConfigPath(), {});
+}
+
+function serializeUpstreamConfig(config) {
+  const services = config.services || {};
+  const claude = services.claude || {};
+  const codex = services.codex || {};
+  return {
+    provider: config.provider || "newapi",
+    baseUrl: config.baseUrl || "",
+    apiKey: "",
+    apiKeyConfigured: Boolean(config.apiKey),
+    apiKeyMasked: maskKey(config.apiKey || ""),
+    timeoutMs: config.timeoutMs || 10000,
+    claudeBaseUrl: claude.baseUrl || "",
+    codexBaseUrl: codex.baseUrl || "",
+    configPath: config.configPath || getUpstreamConfigPath(),
+    configured: Boolean(config.baseUrl && config.apiKey),
+  };
+}
+
+function buildUpstreamConfigFromPayload(payload = {}) {
+  const currentRaw = readRawUpstreamConfig();
+  const current = loadUpstreamConfig({ configPath: getUpstreamConfigPath() });
+  const services = { ...(currentRaw.services || {}) };
+
+  if (!services.claude) services.claude = {};
+  if (!services.codex) services.codex = {};
+
+  if (Object.prototype.hasOwnProperty.call(payload, "claudeBaseUrl")) {
+    services.claude.baseUrl = trimTrailingSlash(payload.claudeBaseUrl);
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "codexBaseUrl")) {
+    services.codex.baseUrl = trimTrailingSlash(payload.codexBaseUrl);
+  }
+
+  const nextApiKey = typeof payload.apiKey === "string" && payload.apiKey.trim()
+    ? payload.apiKey.trim()
+    : (currentRaw.apiKey || current.apiKey || "");
+
+  const timeoutMs = parseInt(payload.timeoutMs || currentRaw.timeoutMs || current.timeoutMs || "10000", 10) || 10000;
+
+  return {
+    ...currentRaw,
+    provider: String(payload.provider || currentRaw.provider || "newapi").trim() || "newapi",
+    baseUrl: trimTrailingSlash(payload.baseUrl ?? currentRaw.baseUrl ?? current.baseUrl),
+    apiKey: nextApiKey,
+    services,
+    timeoutMs,
+    updatedAt: new Date().toISOString(),
   };
 }
 
@@ -332,6 +417,115 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Handle server-side settings API
+  if (urlPath === "/api/settings" && req.method === "GET") {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: '未授权' }));
+      return;
+    }
+
+    const upstream = loadUpstreamConfig({ configPath: getUpstreamConfigPath() });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      data: {
+        upstream: serializeUpstreamConfig(upstream),
+      },
+    }));
+    return;
+  }
+
+  if (urlPath === "/api/settings" && req.method === "PUT") {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: '未授权' }));
+      return;
+    }
+
+    parseRequestBody(req).then((payload) => {
+      const upstreamPayload = payload.upstream || {};
+      const nextConfig = buildUpstreamConfigFromPayload(upstreamPayload);
+
+      if (!nextConfig.baseUrl) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: '请填写上游 API 地址' }));
+        return;
+      }
+
+      if (!nextConfig.apiKey) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: '请填写上游 API Key' }));
+        return;
+      }
+
+      writeJsonFile(getUpstreamConfigPath(), nextConfig);
+      const saved = loadUpstreamConfig({ configPath: getUpstreamConfigPath() });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        message: '系统设置已保存',
+        data: {
+          upstream: serializeUpstreamConfig(saved),
+        },
+      }));
+    }).catch((error) => {
+      console.error('Save settings error:', error);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: '设置保存失败' }));
+    });
+    return;
+  }
+
+  if (urlPath === "/api/settings/upstream/test" && req.method === "POST") {
+    if (!isAuthenticated(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: '未授权' }));
+      return;
+    }
+
+    parseRequestBody(req).then(async (payload) => {
+      const upstreamPayload = payload.upstream || payload || {};
+      const testConfig = buildUpstreamConfigFromPayload(upstreamPayload);
+      const baseUrl = trimTrailingSlash(upstreamPayload.baseUrl || testConfig.baseUrl);
+      const apiKey = String(upstreamPayload.apiKey || testConfig.apiKey || "").trim();
+
+      if (!baseUrl || !apiKey) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: '请填写上游 API 地址和 API Key' }));
+        return;
+      }
+
+      try {
+        const result = await verifyNewApiKey({ ...testConfig, baseUrl }, apiKey);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: result.valid,
+          message: result.valid ? '上游连接成功' : `上游验证失败：${result.error || result.status}`,
+          data: {
+            valid: result.valid,
+            status: result.status,
+            modelsUrl: result.modelsUrl,
+            modelCount: Array.isArray(result.models) ? result.models.length : 0,
+            apiKeyMasked: maskKey(apiKey),
+          },
+        }));
+      } catch (error) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: false,
+          message: `上游连接失败：${error.message}`,
+          data: { valid: false },
+        }));
+      }
+    }).catch((error) => {
+      console.error('Test upstream error:', error);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: '上游测试失败' }));
+    });
+    return;
+  }
+
   // Handle users API
   if (urlPath === "/api/users" && req.method === "GET") {
     if (!isAuthenticated(req)) {
@@ -353,11 +547,8 @@ const server = http.createServer((req, res) => {
             return false;
           }
 
-          if (service && service !== "all") {
-            const normalizedService = normalizeService(service, "");
-            if (user.service !== normalizedService && String(user.service).toLowerCase() !== String(service).toLowerCase()) {
-              return false;
-            }
+          if (!serviceMatches(user, service)) {
+            return false;
           }
 
           if (!query) return true;
@@ -397,9 +588,11 @@ const server = http.createServer((req, res) => {
         return;
       }
 
+      const service = normalizeService(userData.service);
       const newUser = userDb.create({
         ...userData,
-        service: normalizeService(userData.service),
+        service,
+        serviceKey: getServiceKey(service),
         status: normalizeUserStatus(userData.status),
       });
 
@@ -427,6 +620,7 @@ const server = http.createServer((req, res) => {
       }
       if (payload.service !== undefined) {
         payload.service = normalizeService(payload.service);
+        payload.serviceKey = getServiceKey(payload.service);
       }
 
       const updatedUser = userDb.update(userId, payload);
@@ -488,11 +682,8 @@ const server = http.createServer((req, res) => {
             return false;
           }
 
-          if (service && service !== "all") {
-            const normalizedService = normalizeService(service, "");
-            if (code.service !== normalizedService && String(code.service).toLowerCase() !== String(service).toLowerCase()) {
-              return false;
-            }
+          if (!serviceMatches(code, service)) {
+            return false;
           }
 
           if (!query) return true;
@@ -521,7 +712,19 @@ const server = http.createServer((req, res) => {
 
     parseRequestBody(req).then((codeData) => {
       const count = Math.max(parseInt(codeData.count || "1", 10) || 1, 1);
+      const requestedServices = Array.isArray(codeData.services) && codeData.services.length
+        ? codeData.services
+        : [codeData.service || codeData.platform || "Claude Code"];
+      const services = requestedServices
+        .map((service) => normalizeService(service))
+        .filter((service, index, list) => service && list.indexOf(service) === index);
       const createdCodes = [];
+
+      if (!services.length) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: '请至少选择一个服务渠道' }));
+        return;
+      }
 
       let expiresAt = codeData.expiresAt;
       if (codeData.duration) {
@@ -530,16 +733,21 @@ const server = http.createServer((req, res) => {
         expiresAt = expiry.toISOString();
       }
 
-      for (let i = 0; i < count; i++) {
-        const newCode = codeDb.create({
-          ...(codeData.code ? { code: codeData.code } : {}),
-          service: normalizeService(codeData.service),
-          quota: codeData.quota || { total: 1000000, used: 0 },
-          expiresAt,
-          notes: codeData.notes || codeData.note,
-          status: "unused",
-        });
-        createdCodes.push(serializeCode(newCode));
+      for (const service of services) {
+        for (let i = 0; i < count; i++) {
+          const serviceKey = getServiceKey(service);
+          const newCode = codeDb.create({
+            ...(codeData.code && services.length === 1 && count === 1 ? { code: codeData.code } : {}),
+            service,
+            serviceKey,
+            allowedModels: [serviceKey],
+            quota: codeData.quota || { total: 1000000, used: 0 },
+            expiresAt,
+            notes: codeData.notes || codeData.note,
+            status: "unused",
+          });
+          createdCodes.push(serializeCode(newCode));
+        }
       }
 
       res.writeHead(201, { 'Content-Type': 'application/json' });
@@ -568,6 +776,8 @@ const server = http.createServer((req, res) => {
       const payload = { ...updates };
       if (payload.service !== undefined) {
         payload.service = normalizeService(payload.service);
+        payload.serviceKey = getServiceKey(payload.service);
+        payload.allowedModels = [payload.serviceKey];
       }
       if (payload.status !== undefined) {
         payload.status = normalizeCodeStatus(payload.status);
@@ -614,6 +824,7 @@ const server = http.createServer((req, res) => {
   if (urlPath === "/api/activate" && req.method === "POST") {
     parseRequestBody(req).then((data) => {
       const { code: activationCode, userId, username, email } = data;
+      const requestedService = data.service || data.platform || data.product || "";
 
       if (!activationCode || !activationCode.trim()) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -630,8 +841,18 @@ const server = http.createServer((req, res) => {
         return;
       }
 
+      const serializedCode = serializeCode(code);
+      if (requestedService && !serviceMatches(serializedCode, requestedService)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: false,
+          message: `此激活码属于 ${serializedCode.serviceLabel}，不能用于 ${normalizeService(requestedService)}`
+        }));
+        return;
+      }
+
       // 检查激活码状态
-      if (code.status === 'used') {
+      if (normalizeCodeStatus(code) === 'used') {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, message: '激活码已被使用' }));
         return;
@@ -648,7 +869,9 @@ const server = http.createServer((req, res) => {
       const updatedCode = codeDb.update(code.id, {
         status: 'used',
         usedBy: userId || username || email || 'unknown',
-        lastUsedAt: new Date().toISOString()
+        lastUsedAt: new Date().toISOString(),
+        activatedService: serializedCode.service,
+        activatedServiceKey: serializedCode.serviceKey
       });
 
       if (!updatedCode) {
@@ -664,7 +887,9 @@ const server = http.createServer((req, res) => {
         message: '激活成功',
         data: {
           code: updatedCode.code,
-          service: updatedCode.service,
+          service: serializeCode(updatedCode).service,
+          serviceKey: serializeCode(updatedCode).serviceKey,
+          allowedModels: serializeCode(updatedCode).allowedModels,
           quota: updatedCode.quota,
           expiresAt: updatedCode.expiresAt,
           activatedAt: updatedCode.lastUsedAt
@@ -754,8 +979,10 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    const users = userDb.getAll().map(serializeUser);
-    const codes = codeDb.getAll().map(serializeCode);
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const service = url.searchParams.get("service");
+    const users = userDb.getAll().map(serializeUser).filter((user) => serviceMatches(user, service));
+    const codes = codeDb.getAll().map(serializeCode).filter((code) => serviceMatches(code, service));
 
     const totalUsers = users.length;
     const activeUsers = users.filter(u => u.statusKey === 'active').length;
@@ -850,53 +1077,66 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Mock API for user frontend - verify API key
+  // Verify API key or inspect activation code capability
   if (urlPath === "/api/verify" && req.method === "POST") {
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body);
-        // Accept any API key that starts with "sk-test-"
-        if (data.api_key && data.api_key.startsWith('sk-test-')) {
+    parseRequestBody(req).then((data) => {
+      if (data.code) {
+        const code = codeDb.getByCode(String(data.code).trim());
+        if (!code) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            valid: true,
-            message: '验证成功',
-            data: {
-              username: 'test_user',
-              email: 'test@example.com',
-              service: 'Claude Code'
-            }
-          }));
-        } else if (data.code && data.code.startsWith('sk-test-')) {
-          // Also support "code" field
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            valid: true,
-            message: '验证成功',
-            data: {
-              username: 'test_user',
-              email: 'test@example.com',
-              service: 'Claude Code'
-            }
-          }));
-        } else {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: false,
-            valid: false,
-            message: '验证失败，请检查 API Key 是否正确'
-          }));
+          res.end(JSON.stringify({ success: false, valid: false, message: '激活码不存在' }));
+          return;
         }
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, message: '请求格式错误' }));
+
+        const serializedCode = serializeCode(code);
+        if (serializedCode.status !== 'unused') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, valid: false, message: serializedCode.status === 'expired' ? '激活码已过期' : '激活码已被使用' }));
+          return;
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          valid: true,
+          message: '验证成功',
+          data: {
+            code: serializedCode.code,
+            service: serializedCode.service,
+            services: [serializedCode.serviceKey],
+            platforms: serializedCode.serviceKey === 'codex' ? ['codex-cli'] : ['claude-code'],
+            allowedModels: serializedCode.allowedModels,
+            quota: serializedCode.quota,
+            expiresAt: serializedCode.expiresAt
+          }
+        }));
+        return;
       }
+
+      if (data.api_key && data.api_key.startsWith('sk-test-')) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          valid: true,
+          message: '验证成功',
+          data: {
+            username: 'test_user',
+            email: 'test@example.com',
+            service: 'Claude Code'
+          }
+        }));
+        return;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: false,
+        valid: false,
+        message: '验证失败，请检查 API Key 是否正确'
+      }));
+    }).catch(() => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: '请求格式错误' }));
     });
     return;
   }
@@ -1102,7 +1342,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log("");
   console.log("╔══════════════════════════════════════════════════════════════╗");
   console.log("║                                                              ║");
-  console.log("║           CLIProxy Activator - Web UI                        ║");
+  console.log("║           FogIDC Activator - Web UI                          ║");
   console.log("║                                                              ║");
   console.log("╚══════════════════════════════════════════════════════════════╝");
   console.log("");

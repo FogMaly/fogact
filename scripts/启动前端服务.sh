@@ -6,7 +6,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                                                              ║"
-echo "║           CLIProxy Activator - 前端服务启动                   ║"
+echo "║           FogIDC Activator - 前端服务启动                     ║"
 echo "║                                                              ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
@@ -18,8 +18,8 @@ if pgrep -f "node.*web-server.js" > /dev/null; then
     ps aux | grep "node.*web-server" | grep -v grep
     echo ""
     echo "访问地址:"
-    echo "  用户前端: http://localhost:34010/user/"
-    echo "  管理后台: http://localhost:34010/admin/"
+    echo "  用户前端: http://localhost:34020/user/"
+    echo "  管理后台: http://localhost:34020/admin/"
     echo ""
     echo "如需重启，请先停止: pkill -f 'node.*web-server.js'"
     exit 0
@@ -32,7 +32,7 @@ cd "$PROJECT_ROOT"
 echo "🚀 正在启动前端服务..."
 echo ""
 
-nohup node bin/web-server.js > logs/web-server.log 2>&1 &
+nohup env PORT=34020 node bin/web-server.js > logs/web-server.log 2>&1 &
 
 # 等待启动
 sleep 2
@@ -43,17 +43,17 @@ if pgrep -f "node.*web-server.js" > /dev/null; then
     echo ""
     echo "访问地址:"
     echo "─────────────────────────────────────────────────────────────"
-    echo "  本地:      http://localhost:34010/"
-    echo "  本地:      http://127.0.0.1:34010/"
+    echo "  本地:      http://localhost:34020/"
+    echo "  本地:      http://127.0.0.1:34020/"
 
     # 获取网络地址
     for ip in $(hostname -I); do
-        echo "  网络:      http://${ip}:34010/user/"
+        echo "  网络:      http://${ip}:34020/user/"
     done
 
     echo "─────────────────────────────────────────────────────────────"
     echo ""
-    echo "  管理后台:  http://localhost:34010/admin/"
+    echo "  管理后台:  http://localhost:34020/admin/"
     echo ""
     echo "📝 日志文件: logs/web-server.log"
     echo "🛑 停止服务: pkill -f 'node.*web-server.js'"

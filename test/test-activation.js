@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * Test script for cliproxy-activator
+ * Test script for fogidc-activator
  * This simulates the activation flow without making real API calls
  */
 
 const path = require("path");
 const fs = require("fs");
 
-console.log("=== CLIProxy Activator Test Suite ===");
+console.log("=== FogIDC Activator Test Suite ===");
 console.log("");
 
 // Test 1: Module loading
@@ -20,6 +20,8 @@ try {
   const { createBackup, listBackups } = require("../lib/services/backup-service.js");
   const { writeClaudeConfig } = require("../lib/config/claude.js");
   const { writeCodexConfig } = require("../lib/config/codex.js");
+  const { loadUpstreamConfig } = require("../lib/config/upstream.js");
+  const { detectPlatforms } = require("../lib/platforms");
   console.log("✓ All modules loaded successfully");
 } catch (err) {
   console.log("✗ Module loading failed:", err.message);
@@ -72,7 +74,7 @@ console.log("");
 console.log("Test 4: Config path resolution...");
 try {
   const { getClaudeConfigPath } = require("../lib/config/claude.js");
-  const { getCodexConfigPath } = require("../lib/config/codex.js");
+  const { getCodexConfigPath, getCodexAuthPath } = require("../lib/config/codex.js");
 
   const claudePath = getClaudeConfigPath();
   const codexPath = getCodexConfigPath();
@@ -80,6 +82,7 @@ try {
   if (claudePath && codexPath) {
     console.log(`✓ Claude config path: ${claudePath}`);
     console.log(`✓ Codex config path: ${codexPath}`);
+    console.log(`✓ Codex auth path: ${getCodexAuthPath()}`);
   } else {
     console.log("✗ Config path resolution failed");
     process.exit(1);
@@ -104,6 +107,12 @@ try {
 
   if (hasAllCommands) {
     console.log("✓ All CLI commands registered:", commands.join(", "));
+    const activateCommand = program.commands.find(cmd => cmd.name() === "activate");
+    const optionNames = activateCommand.options.map(option => option.long);
+    if (!optionNames.includes("--api-key") || !optionNames.includes("--yes")) {
+      console.log("✗ Missing NewAPI activation options");
+      process.exit(1);
+    }
   } else {
     console.log("✗ Missing CLI commands");
     process.exit(1);
@@ -123,9 +132,10 @@ try {
   if (fs.existsSync(frontendPath)) {
     const content = fs.readFileSync(frontendPath, "utf8");
     if (
-      content.includes("CLIProxy Activator") &&
-      content.includes('url=/user/') &&
-      content.includes('href="/user/"')
+      content.includes("FogIDC Activator") &&
+      content.includes('href="/user/"') &&
+      content.includes('href="/admin/"') &&
+      content.includes('href="/activate.html"')
     ) {
       console.log("✓ Frontend HTML exists and contains expected content");
     } else {
@@ -138,6 +148,108 @@ try {
   }
 } catch (err) {
   console.log("✗ Frontend test failed:", err.message);
+  process.exit(1);
+}
+
+console.log("");
+
+// Test 7: NewAPI config loading
+console.log("Test 7: NewAPI config loading...");
+try {
+  const { loadUpstreamConfig } = require("../lib/config/upstream.js");
+  const config = loadUpstreamConfig({
+    configPath: path.join(__dirname, "..", "config", "upstream.example.json"),
+  });
+  if (config.baseUrl && config.apiKey) {
+    console.log(`✓ Upstream config loaded: ${config.baseUrl}`);
+  } else {
+    console.log("✗ Upstream config missing baseUrl/apiKey");
+    process.exit(1);
+  }
+} catch (err) {
+  console.log("✗ NewAPI config test failed:", err.message);
+  process.exit(1);
+}
+
+console.log("");
+
+// Test 8: Codex config generation
+console.log("Test 8: Codex config generation...");
+try {
+  const { buildCodexConfig } = require("../lib/config/codex.js");
+  const config = buildCodexConfig('model = "old"\n[profiles.default]\nmodel = "keep"', 'https://newapi.example.com/v1', 'sk-test');
+  if (
+    config.includes('model_provider = "yunyi"') &&
+    config.includes('base_url = "https://newapi.example.com/v1"') &&
+    config.includes('experimental_bearer_token = "sk-test"') &&
+    config.includes('[profiles.default]')
+  ) {
+    console.log("✓ Codex config generation works correctly");
+  } else {
+    console.log("✗ Codex config generation failed");
+    process.exit(1);
+  }
+} catch (err) {
+  console.log("✗ Codex config generation test failed:", err.message);
+  process.exit(1);
+}
+
+console.log("");
+
+// Test 9: Platform detection
+console.log("Test 9: Platform detection...");
+try {
+  const { detectPlatforms } = require("../lib/platforms");
+  const claudePlatforms = detectPlatforms("claude");
+  const codexPlatforms = detectPlatforms("codex");
+  if (
+    claudePlatforms.some(({ platform }) => platform.id === "claude-code") &&
+    codexPlatforms.some(({ platform }) => platform.id === "codex-cli") &&
+    codexPlatforms.some(({ platform }) => platform.id === "vscode-codex-plugin")
+  ) {
+    console.log("✓ Platform detection registry works correctly");
+  } else {
+    console.log("✗ Platform detection registry missing expected platforms");
+    process.exit(1);
+  }
+} catch (err) {
+  console.log("✗ Platform detection test failed:", err.message);
+  process.exit(1);
+}
+
+console.log("");
+
+// Test 10: Activation entitlement filtering
+console.log("Test 10: Activation entitlement filtering...");
+try {
+  const { detectPlatforms } = require("../lib/platforms");
+  const { isPlatformAllowed, normalizeEntitlement } = require("../lib/services/activation-orchestrator.js");
+
+  const codexOnly = normalizeEntitlement({
+    data: {
+      capabilities: {
+        services: ["codex"],
+      },
+    },
+  });
+  const claudeOnly = normalizeEntitlement({ service: "Claude Code" });
+  const codexPlatforms = detectPlatforms("codex").filter((entry) => isPlatformAllowed(entry, codexOnly, "codex"));
+  const blockedClaude = detectPlatforms("claude").filter((entry) => isPlatformAllowed(entry, codexOnly, "claude"));
+  const claudePlatforms = detectPlatforms("claude").filter((entry) => isPlatformAllowed(entry, claudeOnly, "claude"));
+
+  if (
+    codexOnly.services.includes("codex") &&
+    codexPlatforms.some(({ platform }) => platform.id === "codex-cli") &&
+    blockedClaude.length === 0 &&
+    claudePlatforms.some(({ platform }) => platform.id === "claude-code")
+  ) {
+    console.log("✓ Activation code capability filtering works correctly");
+  } else {
+    console.log("✗ Activation code capability filtering failed");
+    process.exit(1);
+  }
+} catch (err) {
+  console.log("✗ Activation entitlement test failed:", err.message);
   process.exit(1);
 }
 

@@ -6,7 +6,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                                                              ║"
-echo "║           CLIProxy Activator - 重启前端服务                   ║"
+echo "║           FogIDC Activator - 重启前端服务                     ║"
 echo "║                                                              ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
@@ -25,7 +25,7 @@ cd "$PROJECT_ROOT"
 echo "🚀 启动新服务..."
 echo ""
 
-nohup node bin/web-server.js > logs/web-server.log 2>&1 &
+nohup env PORT=34020 node bin/web-server.js > logs/web-server.log 2>&1 &
 
 # 等待启动
 sleep 2
@@ -36,8 +36,8 @@ if pgrep -f "node.*web-server.js" > /dev/null; then
     echo ""
     echo "访问地址:"
     echo "─────────────────────────────────────────────────────────────"
-    echo "  用户前端:  http://localhost:34010/user/"
-    echo "  管理后台:  http://localhost:34010/admin/"
+    echo "  用户前端:  http://localhost:34020/user/"
+    echo "  管理后台:  http://localhost:34020/admin/"
     echo "─────────────────────────────────────────────────────────────"
     echo ""
     echo "📝 默认管理密码: admin123"

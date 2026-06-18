@@ -6,14 +6,14 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                                                              ║"
-echo "║           CLIProxy Activator - Web UI                        ║"
+echo "║           FogIDC Activator - Web UI                          ║"
 echo "║                                                              ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
 echo "正在启动 Web 服务器..."
-echo "端口: 34010"
-echo "访问: http://localhost:34010"
+echo "端口: 34020"
+echo "访问: http://localhost:34020"
 echo ""
 
 cd "$PROJECT_ROOT"
-node bin/web-server.js
+PORT=34020 node bin/web-server.js

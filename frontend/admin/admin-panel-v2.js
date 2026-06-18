@@ -1,5 +1,7 @@
 const AppState = {
   currentTab: 'dashboard',
+  currentPanel: 'dashboard',
+  currentService: 'all',
   users: [],
   codes: [],
   stats: {},
@@ -49,14 +51,18 @@ const API = {
     return this.request('/api/logout', { method: 'POST' });
   },
 
-  getStats() {
-    return this.request('/api/stats', { method: 'GET' });
+  getStats(params = {}) {
+    const query = new URLSearchParams();
+    if (params.service) query.set('service', params.service);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return this.request(`/api/stats${suffix}`, { method: 'GET' });
   },
 
   getUsers(params = {}) {
     const query = new URLSearchParams();
     if (params.status) query.set('status', params.status);
     if (params.search) query.set('search', params.search);
+    if (params.service) query.set('service', params.service);
     return this.request(`/api/users?${query.toString()}`, { method: 'GET' });
   },
 
@@ -82,6 +88,7 @@ const API = {
     const query = new URLSearchParams();
     if (params.status) query.set('status', params.status);
     if (params.search) query.set('search', params.search);
+    if (params.service) query.set('service', params.service);
     return this.request(`/api/codes?${query.toString()}`, { method: 'GET' });
   },
 
@@ -105,6 +112,24 @@ const API = {
 
   getActivity() {
     return this.request('/api/activity', { method: 'GET' });
+  },
+
+  getSettings() {
+    return this.request('/api/settings', { method: 'GET' });
+  },
+
+  updateSettings(settings) {
+    return this.request('/api/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings)
+    });
+  },
+
+  testUpstream(upstream) {
+    return this.request('/api/settings/upstream/test', {
+      method: 'POST',
+      body: JSON.stringify({ upstream })
+    });
   }
 };
 
@@ -156,9 +181,55 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+const SERVICE_OPTIONS = [
+  { key: 'codex', label: 'Codex', navLabel: 'Codex', icon: 'terminal' },
+  { key: 'claude', label: 'Claude Code', navLabel: 'ClaudeCode', icon: 'code_blocks' }
+];
+
+const ROUTES = {
+  dashboard: { key: 'dashboard', panel: 'dashboard', title: '概览', service: 'all', section: '仪表盘' },
+  users: { key: 'users', panel: 'users', title: '用户管理', service: 'all', section: '仪表盘' },
+  codes: { key: 'codes', panel: 'codes', title: '激活码管理', service: 'all', section: '仪表盘' },
+  'codex-users': { key: 'codex-users', panel: 'users', title: 'Codex 用户管理', service: 'codex', section: 'Codex' },
+  'codex-codes': { key: 'codex-codes', panel: 'codes', title: 'Codex 激活码创建', service: 'codex', section: 'Codex' },
+  'claude-users': { key: 'claude-users', panel: 'users', title: 'ClaudeCode 用户管理', service: 'claude', section: 'ClaudeCode' },
+  'claude-codes': { key: 'claude-codes', panel: 'codes', title: 'ClaudeCode 激活码创建', service: 'claude', section: 'ClaudeCode' },
+  logs: { key: 'logs', panel: 'logs', title: '系统日志', service: 'all', section: '系统' },
+  settings: { key: 'settings', panel: 'settings', title: '系统设置', service: 'all', section: '系统' }
+};
+
+function getRoute(tabName) {
+  return ROUTES[tabName] || ROUTES.dashboard;
+}
+
+function getActiveService() {
+  return AppState.currentService && AppState.currentService !== 'all' ? AppState.currentService : '';
+}
+
+function getServiceOption(keyOrLabel) {
+  const value = String(keyOrLabel || '').toLowerCase();
+  if (value.includes('codex')) return SERVICE_OPTIONS.find((item) => item.key === 'codex');
+  if (value.includes('claude')) return SERVICE_OPTIONS.find((item) => item.key === 'claude');
+  return null;
+}
+
+function getActiveServiceOption() {
+  return getServiceOption(getActiveService());
+}
+
+function getServiceOptionsForScope(currentValue = '') {
+  const active = getActiveServiceOption();
+  const selected = getServiceOption(currentValue);
+  if (active) return [active];
+  if (selected && !SERVICE_OPTIONS.some((item) => item.key === selected.key)) {
+    return [...SERVICE_OPTIONS, selected];
+  }
+  return SERVICE_OPTIONS;
+}
+
 const DEFAULT_SETTINGS = {
   site: {
-    siteName: 'CLIProxy Activator',
+    siteName: 'FogIDC Activator',
     siteDescription: '统一管理用户、激活码与订阅配置。',
     siteUrl: 'https://example.com',
     logoUrl: '',
@@ -188,7 +259,7 @@ const DEFAULT_SETTINGS = {
   email: {
     smtpHost: '',
     smtpPort: 587,
-    senderName: 'CLIProxy Activator',
+    senderName: 'FogIDC Activator',
     senderEmail: '',
     enableTls: true
   },
@@ -204,6 +275,18 @@ const DEFAULT_SETTINGS = {
     iosUrl: '',
     androidUrl: '',
     latestVersion: '1.0.0'
+  },
+  upstream: {
+    provider: 'newapi',
+    baseUrl: '',
+    apiKey: '',
+    apiKeyMasked: '',
+    apiKeyConfigured: false,
+    claudeBaseUrl: '',
+    codexBaseUrl: '',
+    timeoutMs: 10000,
+    configPath: '',
+    configured: false
   }
 };
 
@@ -230,29 +313,44 @@ const UI = {
   },
 
   switchTab(tabName) {
-    AppState.currentTab = tabName;
-    const titleMap = {
-      dashboard: '概览',
-      users: '用户管理',
-      codes: '激活码管理',
-      logs: '系统日志',
-      settings: '系统设置'
-    };
+    const route = getRoute(tabName);
+    AppState.currentTab = route.key;
+    AppState.currentPanel = route.panel;
+    AppState.currentService = route.service || 'all';
 
-    this.updateNavActive(tabName);
-    document.getElementById('page-title').textContent = titleMap[tabName] || tabName;
+    this.updateNavActive(route.key);
+    document.getElementById('page-title').textContent = route.title;
     document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.add('hidden'));
-    document.getElementById(`${tabName}-panel`)?.classList.remove('hidden');
-    window.location.hash = tabName;
-    return this.loadTabData(tabName);
+    document.getElementById(`${route.panel}-panel`)?.classList.remove('hidden');
+    this.updatePanelContext(route);
+    window.location.hash = route.key;
+    return this.loadTabData(route.panel);
   },
 
-  async loadTabData(tabName) {
-    if (tabName === 'dashboard') return Dashboard.render();
-    if (tabName === 'users') return UserManagement.render();
-    if (tabName === 'codes') return CodeManagement.render();
-    if (tabName === 'logs') return LogsManagement.render();
-    if (tabName === 'settings') return SettingsManagement.render();
+  updatePanelContext(route) {
+    const service = getActiveServiceOption();
+    const scopeText = service ? service.navLabel : '全局';
+    const usersTitle = document.getElementById('users-panel-title');
+    const usersSubtitle = document.getElementById('users-panel-subtitle');
+    const codesTitle = document.getElementById('codes-panel-title');
+    const codesSubtitle = document.getElementById('codes-panel-subtitle');
+    const addUserBtn = document.getElementById('add-user-btn-label');
+    const addCodeBtn = document.getElementById('add-code-btn-label');
+
+    if (usersTitle) usersTitle.textContent = service ? `${service.navLabel} 用户列表` : '全局用户列表';
+    if (usersSubtitle) usersSubtitle.textContent = service ? `只显示并创建 ${service.label} 用户` : '汇总所有平台用户';
+    if (codesTitle) codesTitle.textContent = service ? `${service.navLabel} 激活码` : '全局激活码列表';
+    if (codesSubtitle) codesSubtitle.textContent = service ? `此处生成的 CDK 只能用于 ${service.label} 模型` : '查看所有平台 CDK';
+    if (addUserBtn) addUserBtn.textContent = service ? `添加 ${scopeText} 用户` : '添加用户';
+    if (addCodeBtn) addCodeBtn.textContent = service ? `生成 ${scopeText} CDK` : '生成激活码';
+  },
+
+  async loadTabData(panelName) {
+    if (panelName === 'dashboard') return Dashboard.render();
+    if (panelName === 'users') return UserManagement.render();
+    if (panelName === 'codes') return CodeManagement.render();
+    if (panelName === 'logs') return LogsManagement.render();
+    if (panelName === 'settings') return SettingsManagement.render();
   },
 
   initThemeToggle() {
@@ -287,17 +385,13 @@ const UI = {
     };
 
     const node = document.createElement('div');
-    node.className = `fixed top-4 right-4 z-50 rounded-xl border px-5 py-3 shadow-lg ${palette[type] || palette.info} notification-enter flex items-center gap-2`;
+    node.className = `fixed top-4 right-4 z-50 rounded-xl border px-5 py-3 shadow-lg ${palette[type] || palette.info} flex items-center gap-2`;
     node.innerHTML = `
-      <span class="material-symbols-outlined animate-bounce-in" style="animation-duration:0.4s;">${icons[type] || icons.info}</span>
-      <span class="animate-slide-in-up">${escapeHtml(message)}</span>
+      <span class="material-symbols-outlined">${icons[type] || icons.info}</span>
+      <span>${escapeHtml(message)}</span>
     `;
     document.body.appendChild(node);
-    setTimeout(() => {
-      node.classList.remove('notification-enter');
-      node.classList.add('notification-exit');
-      setTimeout(() => node.remove(), 300);
-    }, 2500);
+    setTimeout(() => node.remove(), 2500);
   },
 
   showModal(title, content, actions, onMount) {
@@ -347,7 +441,7 @@ const UI = {
 const Dashboard = {
   async render() {
     try {
-      const [statsResult, activityResult] = await Promise.all([API.getStats(), API.getActivity()]);
+      const [statsResult, activityResult] = await Promise.all([API.getStats({ service: getActiveService() }), API.getActivity()]);
       if (statsResult.success) {
         AppState.stats = statsResult.data || {};
         this.renderStats();
@@ -377,7 +471,7 @@ const Dashboard = {
 
     const container = document.querySelector('#dashboard-panel .grid');
     container.innerHTML = cards.map((card, index) => `
-      <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/20 interactive-card animate-slide-in-up" style="animation-delay: ${index * 80}ms;">
+      <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/20 interactive-card">
         <div class="flex items-start justify-between">
           <div>
             <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">${card.label}</p>
@@ -400,7 +494,7 @@ const Dashboard = {
     }
 
     container.innerHTML = activities.slice(0, 6).map((activity, index) => `
-      <div class="flex items-start gap-3 p-3 rounded-xl hover:bg-surface-container-low transition-all animate-slide-in-right" style="animation-delay: ${200 + index * 60}ms;">
+      <div class="flex items-start gap-3 p-3 rounded-xl hover:bg-surface-container-low transition-all">
         <div class="w-8 h-8 rounded-full bg-primary-fixed/20 flex items-center justify-center flex-shrink-0">
           <span class="material-symbols-outlined text-primary text-sm">history</span>
         </div>
@@ -422,7 +516,7 @@ const Dashboard = {
     }, { once: true });
 
     document.getElementById('quick-add-code')?.addEventListener('click', () => {
-      UI.switchTab('codes');
+      UI.switchTab('codex-codes');
       CodeManagement.showCreateCodeModal();
     }, { once: true });
 
@@ -455,7 +549,7 @@ const UserManagement = {
 
   async loadUsers() {
     try {
-      const result = await API.getUsers(AppState.filters.users);
+      const result = await API.getUsers({ ...AppState.filters.users, service: getActiveService() });
       if (!result.success) {
         UI.showNotification(result.message || '加载用户失败', 'error');
         return;
@@ -495,7 +589,7 @@ const UserManagement = {
           ${AppState.users.map((user, index) => {
             const status = getUserStatusMeta(user);
             return `
-              <tr class="${index % 2 === 0 ? 'bg-surface-container-lowest' : 'bg-surface-container-low'} hover:bg-surface-container transition-all animate-slide-in-up" style="animation-delay: ${index * 50}ms;">
+              <tr class="${index % 2 === 0 ? 'bg-surface-container-lowest' : 'bg-surface-container-low'} hover:bg-surface-container transition-all">
                 <td class="px-4 py-3 text-sm font-medium text-on-surface">${escapeHtml(user.username)}</td>
                 <td class="px-4 py-3 text-sm text-on-surface-variant">${escapeHtml(user.email)}</td>
                 <td class="px-4 py-3 text-sm text-on-surface-variant">${escapeHtml(user.serviceLabel || user.service)}</td>
@@ -538,9 +632,10 @@ const UserManagement = {
         </div>
         <div>
           <label class="block text-sm font-medium text-on-surface mb-2">服务类型</label>
-          <select id="user-service" class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none">
-            ${['Claude Code', 'Codex', 'OpenAI', 'Gemini', '其他'].map((service) => `<option value="${service}" ${user?.serviceLabel === service || user?.service === service ? 'selected' : ''}>${service}</option>`).join('')}
+          <select id="user-service" ${getActiveService() ? 'disabled' : ''} class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none">
+            ${getServiceOptionsForScope(user?.serviceLabel || user?.service).map((service) => `<option value="${service.label}" ${user?.serviceKey === service.key || user?.serviceLabel === service.label || user?.service === service.label ? 'selected' : ''}>${service.label}</option>`).join('')}
           </select>
+          ${getActiveService() ? '<p class="mt-2 text-xs text-on-surface-variant">当前平台上下文已锁定，保存后只归属该平台。</p>' : ''}
         </div>
         <div>
           <label class="block text-sm font-medium text-on-surface mb-2">状态</label>
@@ -571,7 +666,7 @@ const UserManagement = {
     const payload = {
       username: document.getElementById('user-username').value.trim(),
       email: document.getElementById('user-email').value.trim(),
-      service: document.getElementById('user-service').value,
+      service: getActiveServiceOption()?.label || document.getElementById('user-service').value,
       status: document.getElementById('user-status').value
     };
 
@@ -646,7 +741,7 @@ const CodeManagement = {
 
   async loadCodes() {
     try {
-      const result = await API.getCodes(AppState.filters.codes);
+      const result = await API.getCodes({ ...AppState.filters.codes, service: getActiveService() });
       if (!result.success) {
         UI.showNotification(result.message || '加载激活码失败', 'error');
         return;
@@ -686,7 +781,7 @@ const CodeManagement = {
           ${AppState.codes.map((code, index) => {
             const status = getCodeStatusMeta(code);
             return `
-              <tr class="${index % 2 === 0 ? 'bg-surface-container-lowest' : 'bg-surface-container-low'} hover:bg-surface-container transition-all animate-slide-in-up" style="animation-delay: ${index * 50}ms;">
+              <tr class="${index % 2 === 0 ? 'bg-surface-container-lowest' : 'bg-surface-container-low'} hover:bg-surface-container transition-all">
                 <td class="px-4 py-3 text-sm font-mono text-on-surface">
                   <div class="flex items-center gap-2">
                     <span>${escapeHtml(code.code)}</span>
@@ -881,6 +976,7 @@ const CodeManagement = {
   },
 
   showCreateCodeModal() {
+    const serviceChoices = getServiceOptionsForScope();
     const content = `
       <div class="space-y-4">
         <!-- CDK类型 -->
@@ -896,23 +992,17 @@ const CodeManagement = {
         <div>
           <label class="block text-sm font-medium text-on-surface mb-2">服务渠道</label>
           <div class="grid grid-cols-2 gap-2" id="service-channels">
-            <label class="flex items-center gap-2 p-3 bg-surface-container-low rounded-xl cursor-pointer hover:bg-surface-container transition-all">
-              <input type="checkbox" value="Claude Code" class="service-checkbox" checked />
-              <span class="text-sm text-on-surface">Claude Code</span>
-            </label>
-            <label class="flex items-center gap-2 p-3 bg-surface-container-low rounded-xl cursor-pointer hover:bg-surface-container transition-all">
-              <input type="checkbox" value="Codex" class="service-checkbox" />
-              <span class="text-sm text-on-surface">Codex</span>
-            </label>
-            <label class="flex items-center gap-2 p-3 bg-surface-container-low rounded-xl cursor-pointer hover:bg-surface-container transition-all">
-              <input type="checkbox" value="OpenAI" class="service-checkbox" />
-              <span class="text-sm text-on-surface">OpenAI</span>
-            </label>
-            <label class="flex items-center gap-2 p-3 bg-surface-container-low rounded-xl cursor-pointer hover:bg-surface-container transition-all">
-              <input type="checkbox" value="Gemini" class="service-checkbox" />
-              <span class="text-sm text-on-surface">Gemini</span>
-            </label>
+            ${serviceChoices.map((service, index) => `
+              <label class="flex items-center gap-2 p-3 bg-surface-container-low rounded-xl ${getActiveService() ? 'cursor-not-allowed opacity-80' : 'cursor-pointer hover:bg-surface-container'} transition-all">
+                <input type="checkbox" value="${service.label}" class="service-checkbox" ${index === 0 || getActiveService() ? 'checked' : ''} ${getActiveService() ? 'disabled' : ''} />
+                <span class="material-symbols-outlined text-sm text-primary">${service.icon}</span>
+                <span class="text-sm text-on-surface">${service.label}</span>
+              </label>
+            `).join('')}
           </div>
+          <p class="text-xs text-on-surface-variant mt-2">
+            ${getActiveServiceOption() ? `当前层级锁定为 ${getActiveServiceOption().label}，生成的激活码只能激活该平台模型。` : '全局创建时可选择 Codex 或 Claude Code。'}
+          </p>
         </div>
 
         <!-- 月度订阅配置 -->
@@ -999,8 +1089,8 @@ const CodeManagement = {
         </div>
         <div>
           <label class="block text-sm font-medium text-on-surface mb-2">服务类型</label>
-          <select id="edit-code-service" class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none">
-            ${['Claude Code', 'Codex', 'OpenAI', 'Gemini', '其他'].map((service) => `<option value="${service}" ${code.serviceLabel === service || code.service === service ? 'selected' : ''}>${service}</option>`).join('')}
+          <select id="edit-code-service" ${getActiveService() ? 'disabled' : ''} class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none">
+            ${getServiceOptionsForScope(code.serviceLabel || code.service).map((service) => `<option value="${service.label}" ${code.serviceKey === service.key || code.serviceLabel === service.label || code.service === service.label ? 'selected' : ''}>${service.label}</option>`).join('')}
           </select>
         </div>
         <div>
@@ -1033,8 +1123,9 @@ const CodeManagement = {
 
   async createCode() {
     const codeType = document.getElementById('code-type').value;
+    const lockedService = getActiveServiceOption();
     const serviceCheckboxes = document.querySelectorAll('.service-checkbox:checked');
-    const services = Array.from(serviceCheckboxes).map(cb => cb.value);
+    const services = lockedService ? [lockedService.label] : Array.from(serviceCheckboxes).map(cb => cb.value);
     const count = parseInt(document.getElementById('code-count').value, 10);
     const note = document.getElementById('code-note').value.trim();
 
@@ -1065,6 +1156,7 @@ const CodeManagement = {
 
       payload = {
         type: 'monthly',
+        service: lockedService?.label || services[0],
         services,
         count,
         note,
@@ -1088,6 +1180,7 @@ const CodeManagement = {
 
       payload = {
         type: 'fixed',
+        service: lockedService?.label || services[0],
         services,
         count,
         note,
@@ -1123,7 +1216,7 @@ const CodeManagement = {
   async updateCode(id) {
     const expiresAt = document.getElementById('edit-code-expire').value;
     const payload = {
-      service: document.getElementById('edit-code-service').value,
+      service: getActiveServiceOption()?.label || document.getElementById('edit-code-service').value,
       status: document.getElementById('edit-code-status').value,
       expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
       notes: document.getElementById('edit-code-note').value.trim()
@@ -1222,6 +1315,27 @@ const SettingsManagement = {
       ]
     },
     {
+      key: 'upstream',
+      title: '上游 API 设置',
+      icon: 'hub',
+      description: '配置商户/上游 NewAPI 地址、API Key 和服务专用入口。',
+      fields: [
+        {
+          key: 'provider',
+          label: '上游类型',
+          type: 'select',
+          options: [
+            { value: 'newapi', label: 'NewAPI / OneAPI 兼容' }
+          ]
+        },
+        { key: 'baseUrl', label: '上游 API 地址', type: 'url', placeholder: 'https://newapi.example.com' },
+        { key: 'apiKey', label: '上游 API Key', type: 'password', placeholder: '留空则保留当前密钥' },
+        { key: 'claudeBaseUrl', label: 'Claude 专用地址（可选）', type: 'url', placeholder: '默认使用上游 API 地址' },
+        { key: 'codexBaseUrl', label: 'Codex 专用地址（可选）', type: 'url', placeholder: '例如 https://newapi.example.com/v1' },
+        { key: 'timeoutMs', label: '请求超时（毫秒）', type: 'number', min: 1000 }
+      ]
+    },
+    {
       key: 'invite',
       title: '邀请与佣金',
       icon: 'person_add',
@@ -1282,39 +1396,65 @@ const SettingsManagement = {
     }
   ],
 
-  ensureState() {
+  mergeSettings(base, incoming) {
+    const next = clone(DEFAULT_SETTINGS);
+    Object.keys(base || {}).forEach((key) => {
+      if (next[key] && typeof base[key] === 'object') {
+        next[key] = { ...next[key], ...base[key] };
+      }
+    });
+    Object.keys(incoming || {}).forEach((key) => {
+      if (next[key] && typeof incoming[key] === 'object') {
+        next[key] = { ...next[key], ...incoming[key] };
+      }
+    });
+    return next;
+  },
+
+  async ensureState() {
     if (AppState.settings) return;
 
-    const next = clone(DEFAULT_SETTINGS);
+    let localSettings = {};
     try {
       const saved = JSON.parse(localStorage.getItem(this.storageKey) || 'null');
       if (saved && typeof saved === 'object') {
-        this.sections.forEach((section) => {
-          if (saved[section.key] && typeof saved[section.key] === 'object') {
-            next[section.key] = { ...next[section.key], ...saved[section.key] };
-          }
-        });
+        localSettings = saved;
       }
     } catch (error) {
       console.error('Failed to parse settings cache:', error);
     }
 
-    AppState.settings = next;
+    AppState.settings = this.mergeSettings(localSettings, {});
+
+    try {
+      const result = await API.getSettings();
+      if (result.success && result.data) {
+        AppState.settings = this.mergeSettings(AppState.settings, result.data);
+        this.persistLocal();
+      }
+    } catch (error) {
+      if (error.message === '未授权') {
+        showLoginForm();
+        return;
+      }
+      console.error('Failed to load server settings:', error);
+      UI.showNotification('服务端设置加载失败，已使用本地缓存', 'error');
+    }
   },
 
-  persist() {
+  persistLocal() {
     localStorage.setItem(this.storageKey, JSON.stringify(AppState.settings));
   },
 
-  render() {
-    this.ensureState();
+  async render() {
+    await this.ensureState();
     const container = document.getElementById('settings-container');
     const summary = this.buildSummary();
     const cards = this.sections.map((section) => this.renderCard(section)).join('');
 
     container.innerHTML = `
       <div class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           ${summary}
         </div>
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -1345,6 +1485,11 @@ const SettingsManagement = {
         label: '通知渠道',
         value: settings.telegram.botToken ? '已配置' : '未配置',
         sub: settings.email.smtpHost ? '邮件已接通' : '邮件未接通'
+      },
+      {
+        label: '上游 API',
+        value: settings.upstream.configured || settings.upstream.apiKeyConfigured ? '已配置' : '未配置',
+        sub: settings.upstream.baseUrl || '等待填写上游地址'
       }
     ];
 
@@ -1402,6 +1547,7 @@ const SettingsManagement = {
       site: `${settings.siteName} · ${settings.siteUrl || '未配置域名'}`,
       security: `超时 ${settings.sessionTimeout} 小时 · ${settings.auditMode ? '审计开启' : '审计关闭'}`,
       subscription: `默认 ${settings.defaultQuota} 配额 · ${settings.defaultDuration} 天`,
+      upstream: `${settings.baseUrl || '未配置上游'} · ${settings.apiKeyConfigured ? settings.apiKeyMasked : 'Key 未配置'}`,
       invite: `${settings.inviteEnabled ? '邀请开启' : '邀请关闭'} · ${settings.commissionRate}% 佣金`,
       email: settings.smtpHost ? `${settings.smtpHost}:${settings.smtpPort}` : 'SMTP 未配置',
       telegram: settings.botToken ? 'Bot Token 已配置' : 'Telegram 未配置',
@@ -1424,10 +1570,12 @@ const SettingsManagement = {
 
     const actions = `
       <button data-close-modal class="px-4 py-2 text-on-surface-variant hover:bg-surface-container rounded-xl transition-all">取消</button>
+      ${key === 'upstream' ? '<button id="test-upstream-btn" class="px-4 py-2 bg-surface-container text-on-surface rounded-xl font-bold hover:shadow-md transition-all">测试连接</button>' : ''}
       <button id="save-settings-btn" class="px-4 py-2 bg-primary text-on-primary rounded-xl font-bold hover:shadow-md transition-all">保存设置</button>
     `;
 
     UI.showModal(section.title, content, actions);
+    document.getElementById('test-upstream-btn')?.addEventListener('click', () => this.testUpstream());
     document.getElementById('save-settings-btn')?.addEventListener('click', () => this.saveSection(key));
   },
 
@@ -1441,6 +1589,24 @@ const SettingsManagement = {
           <span class="text-sm font-medium text-on-surface">${field.label}</span>
           <input id="${inputId}" type="checkbox" ${value ? 'checked' : ''} class="w-4 h-4 rounded border-outline-variant" />
         </label>
+      `;
+    }
+
+    if (field.type === 'password') {
+      const current = sectionKey === 'upstream' ? AppState.settings.upstream.apiKeyMasked : '';
+      return `
+        <div>
+          ${label}
+          <input
+            id="${inputId}"
+            type="password"
+            value=""
+            placeholder="${field.placeholder || current || ''}"
+            class="w-full px-4 py-3 bg-surface-container-low border-none rounded-xl text-sm outline-none"
+            autocomplete="new-password"
+          />
+          ${current ? `<p class="mt-2 text-xs text-on-surface-variant">当前已保存：${escapeHtml(current)}；留空则继续使用当前 Key。</p>` : ''}
+        </div>
       `;
     }
 
@@ -1487,9 +1653,9 @@ const SettingsManagement = {
     `;
   },
 
-  saveSection(key) {
+  collectSectionValues(key) {
     const section = this.sections.find((item) => item.key === key);
-    if (!section) return;
+    if (!section) return null;
 
     const nextSection = {};
     section.fields.forEach((field) => {
@@ -1505,11 +1671,83 @@ const SettingsManagement = {
       }
     });
 
+    return nextSection;
+  },
+
+  async testUpstream() {
+    const nextSection = this.collectSectionValues('upstream');
+    if (!nextSection) return;
+
+    const button = document.getElementById('test-upstream-btn');
+    const previousText = button?.textContent || '测试连接';
+    if (button) {
+      button.disabled = true;
+      button.textContent = '测试中...';
+    }
+
+    try {
+      const payload = { ...AppState.settings.upstream, ...nextSection };
+      const result = await API.testUpstream(payload);
+      UI.showNotification(result.message || (result.success ? '上游连接成功' : '上游连接失败'), result.success ? 'success' : 'error');
+    } catch (error) {
+      if (error.message === '未授权') {
+        showLoginForm();
+        return;
+      }
+      console.error(error);
+      UI.showNotification('上游连接测试失败', 'error');
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = previousText;
+      }
+    }
+  },
+
+  async saveSection(key) {
+    const section = this.sections.find((item) => item.key === key);
+    if (!section) return;
+
+    const nextSection = this.collectSectionValues(key);
+    if (!nextSection) return;
+
     AppState.settings[key] = nextSection;
-    this.persist();
-    UI.hideModal();
-    this.render();
-    UI.showNotification(`${section.title}已保存`, 'success');
+    const saveButton = document.getElementById('save-settings-btn');
+    const previousText = saveButton?.textContent || '保存设置';
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.textContent = '保存中...';
+    }
+
+    try {
+      if (key === 'upstream') {
+        const result = await API.updateSettings({ upstream: nextSection });
+        if (!result.success) {
+          UI.showNotification(result.message || '保存失败', 'error');
+          return;
+        }
+        if (result.data?.upstream) {
+          AppState.settings.upstream = { ...AppState.settings.upstream, ...result.data.upstream, apiKey: '' };
+        }
+      }
+
+      this.persistLocal();
+      UI.hideModal();
+      await this.render();
+      UI.showNotification(`${section.title}已保存`, 'success');
+    } catch (error) {
+      if (error.message === '未授权') {
+        showLoginForm();
+        return;
+      }
+      console.error(error);
+      UI.showNotification(`${section.title}保存失败`, 'error');
+    } finally {
+      if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.textContent = previousText;
+      }
+    }
   }
 };
 
@@ -1530,11 +1768,11 @@ function bindShellActions() {
 
   document.getElementById('global-search')?.addEventListener('input', debounce((event) => {
     const keyword = event.target.value.trim();
-    if (AppState.currentTab === 'users') {
+    if (AppState.currentPanel === 'users') {
       document.getElementById('user-search').value = keyword;
       AppState.filters.users.search = keyword;
       UserManagement.loadUsers();
-    } else if (AppState.currentTab === 'codes') {
+    } else if (AppState.currentPanel === 'codes') {
       document.getElementById('code-search').value = keyword;
       AppState.filters.codes.search = keyword;
       CodeManagement.loadCodes();
@@ -1609,7 +1847,6 @@ async function init() {
     document.getElementById('login-overlay').style.display = 'none';
     const appContainer = document.getElementById('app-container');
     appContainer.style.display = 'flex';
-    appContainer.classList.add('fade-in');
     bindShellActions();
     await UI.switchTab(window.location.hash.slice(1) || AppState.currentTab);
   } catch (error) {

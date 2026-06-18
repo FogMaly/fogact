@@ -1,315 +1,249 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>激活码激活 | CLIProxy Activator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        * {
-            font-family: 'Inter', sans-serif;
-        }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>激活 CDK | FogIDC Activator</title>
+    <meta name="description" content="输入 FogIDC Activator 激活码，绑定用户并开通服务。" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/market-ui.css?v=20260616-upstream2" />
+  </head>
+  <body class="market-page">
+    <span class="market-mouse-light" aria-hidden="true"></span>
 
-        @keyframes slideInUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
+    <div class="market-shell">
+      <header class="market-topbar">
+        <a class="market-brand" href="/">
+          <span class="market-logo">F</span>
+          <span>
+            <span class="market-brand-title">FogIDC Activator</span>
+            <span class="market-brand-subtitle">Redeem center</span>
+          </span>
+        </a>
 
-        @keyframes bounceIn {
-            0% { transform: scale(0.3); opacity: 0; }
-            50% { transform: scale(1.05); }
-            70% { transform: scale(0.9); }
-            100% { transform: scale(1); opacity: 1; }
-        }
+        <nav class="market-nav" aria-label="主导航">
+          <a href="/user/">用户中心</a>
+          <a href="/admin/">管理后台</a>
+          <a href="/">首页</a>
+        </nav>
+      </header>
 
-        .animate-slide-in-up {
-            animation: slideInUp 0.5s ease-out;
-        }
+      <main class="market-activation">
+        <section class="market-activation-copy" aria-labelledby="activation-title">
+          <div class="market-kicker"><span class="market-kicker-dot"></span> fast activation flow</div>
+          <h1 id="activation-title" class="market-title">输入 CDK，立即开通 <span>CLI 服务</span></h1>
+          <p class="market-copy">
+            保留原有激活接口，升级为更清晰的产品化表单。输入激活码后会自动校验额度、服务类型和有效期。
+          </p>
 
-        .animate-bounce-in {
-            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
+          <div class="market-flow" aria-label="激活流程">
+            <div class="market-flow-step">
+              <span class="market-flow-index">1</span>
+              <span><strong>输入 CDK</strong><span>校验格式和可用状态</span></span>
+            </div>
+            <div class="market-flow-step">
+              <span class="market-flow-index">2</span>
+              <span><strong>绑定身份</strong><span>用户名和邮箱用于后台追踪</span></span>
+            </div>
+            <div class="market-flow-step">
+              <span class="market-flow-index">3</span>
+              <span><strong>点火开通</strong><span>写入服务、额度和有效期</span></span>
+            </div>
+          </div>
 
-        .success-checkmark {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto;
-        }
+          <div class="market-preview-stack" style="margin-top: 28px; max-width: 640px;">
+            <div class="market-mini-card">
+              <span class="market-icon material-symbols-outlined">encrypted</span>
+              <div>
+                <p class="market-mini-title">安全校验</p>
+                <p class="market-mini-copy">激活过程通过本地 API 完成，失败会返回明确提示。</p>
+              </div>
+              <span class="market-status-pill">Secure</span>
+            </div>
+            <div class="market-mini-card">
+              <span class="market-icon material-symbols-outlined">rocket_launch</span>
+              <div>
+                <p class="market-mini-title">多服务支持</p>
+                <p class="market-mini-copy">适配 Codex、Claude Code、OpenCode 与 OpenClaw 场景。</p>
+              </div>
+              <span class="market-status-pill">Multi</span>
+            </div>
+          </div>
+        </section>
 
-        .success-checkmark .check-icon {
-            width: 80px;
-            height: 80px;
-            position: relative;
-            border-radius: 50%;
-            box-sizing: content-box;
-            border: 4px solid #4CAF50;
-        }
-
-        .success-checkmark .check-icon::before {
-            top: 3px;
-            left: -2px;
-            width: 30px;
-            transform-origin: 100% 50%;
-            border-radius: 100px 0 0 100px;
-        }
-
-        .success-checkmark .check-icon::after {
-            top: 0;
-            left: 30px;
-            width: 60px;
-            transform-origin: 0 50%;
-            border-radius: 0 100px 100px 0;
-            animation: rotate-circle 4.25s ease-in;
-        }
-
-        .success-checkmark .check-icon::before,
-        .success-checkmark .check-icon::after {
-            content: '';
-            height: 100px;
-            position: absolute;
-            background: #FFFFFF;
-            transform: rotate(-45deg);
-        }
-
-        .success-checkmark .check-icon .icon-line {
-            height: 5px;
-            background-color: #4CAF50;
-            display: block;
-            border-radius: 2px;
-            position: absolute;
-            z-index: 10;
-        }
-
-        .success-checkmark .check-icon .icon-line.line-tip {
-            top: 46px;
-            left: 14px;
-            width: 25px;
-            transform: rotate(45deg);
-            animation: icon-line-tip 0.75s;
-        }
-
-        .success-checkmark .check-icon .icon-line.line-long {
-            top: 38px;
-            right: 8px;
-            width: 47px;
-            transform: rotate(-45deg);
-            animation: icon-line-long 0.75s;
-        }
-
-        @keyframes rotate-circle {
-            0% { transform: rotate(-45deg); }
-            5% { transform: rotate(-45deg); }
-            12% { transform: rotate(-405deg); }
-            100% { transform: rotate(-405deg); }
-        }
-
-        @keyframes icon-line-tip {
-            0% { width: 0; left: 1px; top: 19px; }
-            54% { width: 0; left: 1px; top: 19px; }
-            70% { width: 50px; left: -8px; top: 37px; }
-            84% { width: 17px; left: 21px; top: 48px; }
-            100% { width: 25px; left: 14px; top: 45px; }
-        }
-
-        @keyframes icon-line-long {
-            0% { width: 0; right: 46px; top: 54px; }
-            65% { width: 0; right: 46px; top: 54px; }
-            84% { width: 55px; right: 0px; top: 35px; }
-            100% { width: 47px; right: 8px; top: 38px; }
-        }
-    </style>
-</head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-md w-full">
-        <!-- 激活表单 -->
-        <div id="activation-form" class="bg-white rounded-2xl shadow-xl p-8 animate-bounce-in">
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-bounce-in" style="animation-delay: 0.1s;">
-                    <span class="material-symbols-outlined text-white text-3xl">key</span>
-                </div>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2 animate-slide-in-up" style="animation-delay: 0.2s;">激活 CDK</h1>
-                <p class="text-sm text-gray-600 animate-slide-in-up" style="animation-delay: 0.3s;">输入您的激活码以激活服务</p>
+        <section aria-label="激活表单">
+          <div id="activation-form" class="market-auth-card motion-once">
+            <div class="market-card-canvas" style="min-height: 128px; border-radius: 24px; margin-bottom: 22px; --accent: var(--market-primary);">
+              <span class="market-widget market-widget-key"></span>
+              <span class="market-widget market-widget-toggle"></span>
+              <span class="market-widget market-widget-badge material-symbols-outlined">rocket_launch</span>
+            </div>
+            <div class="market-form-header">
+              <span class="market-icon material-symbols-outlined">vpn_key</span>
+              <h1>激活 CDK</h1>
+              <p>填写激活码，用户名和邮箱可选。成功后会展示服务类型、额度和过期时间。</p>
             </div>
 
-            <form id="activate-form" class="space-y-6">
-                <div class="animate-slide-in-up" style="animation-delay: 0.4s;">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">激活码</label>
-                    <input
-                        type="text"
-                        id="activation-code"
-                        placeholder="请输入激活码"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                        required
-                    />
-                </div>
+            <form id="activate-form" class="market-form">
+              <div class="market-field">
+                <label for="activation-code">激活码 <span>Required</span></label>
+                <input type="text" id="activation-code" placeholder="例如 XXXX-XXXX-XXXX-XXXX" required />
+              </div>
 
-                <div class="animate-slide-in-up" style="animation-delay: 0.5s;">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">用户名（可选）</label>
-                    <input
-                        type="text"
-                        id="username"
-                        placeholder="请输入用户名"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                    />
-                </div>
+              <div class="market-field">
+                <label for="username">用户名 <span>Optional</span></label>
+                <input type="text" id="username" placeholder="用于后台识别的用户名" />
+              </div>
 
-                <div class="animate-slide-in-up" style="animation-delay: 0.6s;">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">邮箱（可选）</label>
-                    <input
-                        type="email"
-                        id="email"
-                        placeholder="请输入邮箱"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                    />
-                </div>
+              <div class="market-field">
+                <label for="email">邮箱 <span>Optional</span></label>
+                <input type="email" id="email" placeholder="name@example.com" />
+              </div>
 
-                <div id="error-message" class="hidden p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600"></div>
+              <div id="error-message" class="market-alert hidden"></div>
 
-                <button
-                    type="submit"
-                    id="submit-btn"
-                    class="w-full bg-blue-500 text-white px-6 py-3 rounded-xl font-bold shadow-sm hover:shadow-md hover:bg-blue-600 transition-all animate-slide-in-up"
-                    style="animation-delay: 0.7s;"
-                >
-                    激活
-                </button>
+              <button type="submit" id="submit-btn" class="market-button market-button-primary" style="width: 100%; min-height: 50px;">
+                <span class="material-symbols-outlined">bolt</span>
+                激活服务
+              </button>
             </form>
 
-            <div class="mt-6 text-center animate-slide-in-up" style="animation-delay: 0.8s;">
-                <a href="/admin/" class="text-sm text-blue-500 hover:text-blue-600">返回管理后台</a>
+            <div class="market-link-row">
+              <a href="/admin/">返回管理后台</a>
+              <a href="/user/">前往用户中心</a>
             </div>
-        </div>
+          </div>
 
-        <!-- 激活成功 -->
-        <div id="success-result" class="hidden bg-white rounded-2xl shadow-xl p-8">
-            <div class="text-center">
-                <div class="success-checkmark mb-6">
-                    <div class="check-icon">
-                        <span class="icon-line line-tip"></span>
-                        <span class="icon-line line-long"></span>
-                        <div class="icon-circle"></div>
-                        <div class="icon-fix"></div>
-                    </div>
+          <div id="success-result" class="market-auth-card hidden">
+            <div class="market-result-inner" style="text-align: center;">
+              <div class="success-checkmark">
+                <div class="check-icon">
+                  <span class="icon-line line-tip"></span>
+                  <span class="icon-line line-long"></span>
                 </div>
+              </div>
 
-                <h2 class="text-2xl font-bold text-gray-900 mb-2">激活成功！</h2>
-                <p class="text-gray-600 mb-6">您的激活码已成功激活</p>
+              <h2>激活成功</h2>
+              <p>您的激活码已绑定，下面是本次开通详情。</p>
 
-                <div class="bg-gray-50 rounded-xl p-6 mb-6 text-left">
-                    <div class="space-y-3">
-                        <div class="flex justify-between">
-                            <span class="text-sm text-gray-600">激活码</span>
-                            <span class="text-sm font-mono font-medium text-gray-900" id="result-code"></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-sm text-gray-600">服务类型</span>
-                            <span class="text-sm font-medium text-gray-900" id="result-service"></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-sm text-gray-600">总额度</span>
-                            <span class="text-sm font-medium text-gray-900" id="result-quota"></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-sm text-gray-600">过期时间</span>
-                            <span class="text-sm font-medium text-gray-900" id="result-expires"></span>
-                        </div>
-                    </div>
-                </div>
+              <div class="market-result-list">
+                <div class="market-result-row"><span>激活码</span><span id="result-code"></span></div>
+                <div class="market-result-row"><span>服务类型</span><span id="result-service"></span></div>
+                <div class="market-result-row"><span>总额度</span><span id="result-quota"></span></div>
+                <div class="market-result-row"><span>过期时间</span><span id="result-expires"></span></div>
+              </div>
 
-                <button
-                    onclick="location.reload()"
-                    class="w-full bg-blue-500 text-white px-6 py-3 rounded-xl font-bold shadow-sm hover:shadow-md hover:bg-blue-600 transition-all"
-                >
-                    激活另一个激活码
-                </button>
+              <button onclick="location.reload()" class="market-button market-button-primary" style="width: 100%; min-height: 50px;">
+                激活另一个激活码
+              </button>
 
-                <div class="mt-4">
-                    <a href="/user/" class="text-sm text-blue-500 hover:text-blue-600">前往用户中心</a>
-                </div>
+              <div class="market-link-row">
+                <a href="/user/">前往用户中心</a>
+                <a href="/">返回首页</a>
+              </div>
             </div>
-        </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script>
-        const form = document.getElementById('activate-form');
-        const submitBtn = document.getElementById('submit-btn');
-        const errorMessage = document.getElementById('error-message');
-        const activationForm = document.getElementById('activation-form');
-        const successResult = document.getElementById('success-result');
+      const body = document.body;
+      const params = new URLSearchParams(window.location.search);
+      const requestedService = params.get('service') || params.get('platform') || '';
+      const form = document.getElementById('activate-form');
+      const submitBtn = document.getElementById('submit-btn');
+      const errorMessage = document.getElementById('error-message');
+      const activationForm = document.getElementById('activation-form');
+      const successResult = document.getElementById('success-result');
+      let raf = 0;
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+      window.addEventListener('load', () => {
+        requestAnimationFrame(() => document.body.classList.add('motion-ready'));
+      }, { once: true });
 
-            const code = document.getElementById('activation-code').value.trim();
-            const username = document.getElementById('username').value.trim();
-            const email = document.getElementById('email').value.trim();
-
-            if (!code) {
-                showError('请输入激活码');
-                return;
-            }
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = '激活中...';
-            errorMessage.classList.add('hidden');
-
-            try {
-                const response = await fetch('/api/activate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ code, username, email })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showSuccess(result.data);
-                } else {
-                    showError(result.message || '激活失败');
-                }
-            } catch (error) {
-                console.error('Activation error:', error);
-                showError('网络错误，请稍后重试');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = '激活';
-            }
+      window.addEventListener('pointermove', (event) => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          body.classList.add('is-pointer-active');
+          body.style.setProperty('--cursor-x', `${event.clientX}px`);
+          body.style.setProperty('--cursor-y', `${event.clientY}px`);
+          raf = 0;
         });
+      });
 
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.remove('hidden');
-            errorMessage.classList.add('animate-slide-in-up');
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const code = document.getElementById('activation-code').value.trim();
+        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
+
+        if (!code) {
+          showError('请输入激活码');
+          return;
         }
 
-        function showSuccess(data) {
-            document.getElementById('result-code').textContent = data.code;
-            document.getElementById('result-service').textContent = data.service;
-            document.getElementById('result-quota').textContent = formatNumber(data.quota?.total || 0);
-            document.getElementById('result-expires').textContent = formatDate(data.expiresAt);
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="material-symbols-outlined">progress_activity</span> 激活中...';
+        errorMessage.classList.add('hidden');
 
-            activationForm.classList.add('hidden');
-            successResult.classList.remove('hidden');
-            successResult.classList.add('animate-bounce-in');
-        }
+        try {
+          const response = await fetch('/api/activate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, username, email, service: requestedService })
+          });
 
-        function formatNumber(num) {
-            return new Intl.NumberFormat('zh-CN').format(num);
-        }
+          const result = await response.json();
 
-        function formatDate(dateString) {
-            if (!dateString) return '永久';
-            const date = new Date(dateString);
-            return date.toLocaleDateString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            });
+          if (result.success) {
+            showSuccess(result.data);
+          } else {
+            showError(result.message || '激活失败');
+          }
+        } catch (error) {
+          console.error('Activation error:', error);
+          showError('网络错误，请稍后重试');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span class="material-symbols-outlined">bolt</span> 激活服务';
         }
+      });
+
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.classList.remove('hidden');
+        errorMessage.classList.add('animate-slide-in-up');
+      }
+
+      function showSuccess(data) {
+        document.getElementById('result-code').textContent = data.code || '-';
+        document.getElementById('result-service').textContent = data.service || '-';
+        document.getElementById('result-quota').textContent = formatNumber(data.quota?.total || 0);
+        document.getElementById('result-expires').textContent = formatDate(data.expiresAt);
+
+        activationForm.classList.add('hidden');
+        successResult.classList.remove('hidden');
+        successResult.classList.add('animate-slide-in-up');
+      }
+
+      function formatNumber(num) {
+        return new Intl.NumberFormat('zh-CN').format(num);
+      }
+
+      function formatDate(dateString) {
+        if (!dateString) return '永久';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+      }
     </script>
-</body>
+  </body>
 </html>

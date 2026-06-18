@@ -1,32 +1,50 @@
 {
-  "name": "cliproxy-activator",
-  "version": "1.1.0",
-  "description": "One-command activator for CLIProxyAPI — Activate Codex and Claude Code with activation codes",
-  "keywords": ["claude", "codex", "cliproxy", "cli-proxy-api", "activator", "yunyi"],
+  "name": "fogidc-activator",
+  "version": "1.1.1",
+  "description": "FogIDC multi-platform activator — Activate Codex, Claude Code, OpenCode and OpenClaw",
+  "keywords": [
+    "fogidc",
+    "claude",
+    "codex",
+    "cliproxy",
+    "cli-proxy-api",
+    "activator"
+  ],
   "license": "MIT",
   "homepage": "https://github.com/FogMaly/cliproxy-activator",
   "bugs": {
     "url": "https://github.com/FogMaly/cliproxy-activator/issues"
   },
   "bin": {
-    "cliproxy-activator": "./bin/cli.js",
-    "cliproxy-web": "./bin/web-server.js"
+    "fogidc-activator": "bin/cli.js",
+    "fogidc-web": "bin/web-server.js",
+    "cliproxy-activator": "bin/cli.js",
+    "cliproxy-web": "bin/web-server.js"
   },
   "main": "./lib/index.js",
-  "files": ["bin/", "lib/", "frontend/", "README.md"],
-  "engines": { "node": ">=16.0.0" },
+  "files": [
+    "bin/",
+    "lib/",
+    "frontend/",
+    "config/upstream.example.json",
+    "README.md",
+    "install.sh"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "dependencies": {
     "commander": "^12.0.0",
     "prompts": "^2.4.2"
   },
   "scripts": {
     "start": "node bin/cli.js",
-    "web": "node bin/web-server.js",
+    "web": "PORT=34020 node bin/web-server.js",
     "test": "node test/test-activation.js",
     "demo": "./scripts/demo.sh"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/FogMaly/cliproxy-activator.git"
+    "url": "git+https://github.com/FogMaly/cliproxy-activator.git"
   }
 }

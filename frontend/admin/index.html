@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理中心 | CLIProxy Activator</title>
+    <title>管理中心 | FogIDC Activator</title>
 
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
     <!-- Tailwind CSS -->
@@ -149,30 +149,6 @@
             transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
         }
 
-        /* 淡入动画 - 用于页面加载 */
-        @keyframes fadeInScale {
-            from {
-                opacity: 0;
-                transform: scale(0.96);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        /* 通知滑入 */
-        @keyframes slideInFromRight {
-            from {
-                opacity: 0;
-                transform: translateX(100%);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
         /* 模态框背景 */
         @keyframes fadeInBackdrop {
             from { opacity: 0; }
@@ -186,39 +162,6 @@
         }
 
         /* === 微交互类 === */
-
-        /* 页面淡入 */
-        .fade-in {
-            animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        /* 弹跳动画 */
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        @keyframes bounceIn {
-            0% { transform: scale(0.3); opacity: 0; }
-            50% { transform: scale(1.05); }
-            70% { transform: scale(0.9); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        @keyframes slideInUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -244,23 +187,6 @@
                 transform: scale(4);
                 opacity: 0;
             }
-        }
-
-        /* 应用动画类 */
-        .animate-bounce-in {
-            animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-
-        .animate-slide-in-right {
-            animation: slideInRight 0.3s ease-out;
-        }
-
-        .animate-slide-in-up {
-            animation: slideInUp 0.3s ease-out;
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-in;
         }
 
         .animate-pulse {
@@ -344,15 +270,6 @@
             animation: gradientShift 3s ease infinite;
         }
 
-        /* 通知动画 */
-        .notification-enter {
-            animation: slideInFromRight 0.3s ease-out;
-        }
-
-        .notification-exit {
-            animation: slideInFromRight 0.3s ease-out reverse;
-        }
-
         /* 列表项延迟淡入 */
         .stagger-item {
             opacity: 0 !important;
@@ -422,15 +339,6 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
 
-        /* 通知 */
-        .notification {
-            animation: slideInFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .notification.exit {
-            animation: slideInFromRight 0.2s cubic-bezier(0.16, 1, 0.3, 1) reverse;
-        }
-
         /* 模态框 */
         .modal-backdrop {
             animation: fadeInBackdrop 0.2s ease;
@@ -438,14 +346,6 @@
 
         .modal-backdrop.exit {
             animation: fadeInBackdrop 0.15s ease reverse;
-        }
-
-        .modal-content {
-            animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .modal-content.exit {
-            animation: fadeInScale 0.2s cubic-bezier(0.16, 1, 0.3, 1) reverse;
         }
 
         /* 加载旋转 */
@@ -481,19 +381,21 @@
             height: 80%;
         }
     </style>
+    <link rel="stylesheet" href="/assets/market-ui.css?v=20260617-platform-scope1">
 </head>
-<body class="bg-surface text-on-surface min-h-screen flex overflow-hidden">
+<body class="market-admin bg-surface text-on-surface min-h-screen flex overflow-hidden">
+    <span class="market-mouse-light" aria-hidden="true"></span>
 
     <!-- Login Overlay -->
-    <div id="login-overlay" class="fixed inset-0 bg-surface z-[9999] flex items-center justify-center fade-in">
+    <div id="login-overlay" class="fixed inset-0 bg-surface z-[9999] flex items-center justify-center">
         <div class="w-full max-w-[400px] px-4">
-            <div class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-8 shadow-lg max-w-md mx-auto fade-in">
+            <div class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-8 shadow-lg max-w-md mx-auto">
                 <div class="text-center mb-6">
                     <div class="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-on-primary text-3xl">shield</span>
                     </div>
                     <h1 class="text-2xl font-bold text-on-surface mb-2">管理后台登录</h1>
-                    <p class="text-sm text-on-surface-variant">CLIProxy Activator 企业版</p>
+                    <p class="text-sm text-on-surface-variant">FogIDC Activator 企业版</p>
                 </div>
 
                 <div id="login-alert" class="hidden mb-4 p-3 rounded-xl text-sm bg-error-container border border-error text-on-error-container"></div>
@@ -530,32 +432,69 @@
 
         <!-- Sidebar -->
         <aside class="fixed left-0 top-0 h-full z-40 flex flex-col p-4 w-64 border-r border-outline-variant/20 bg-surface-container-low">
-            <div class="text-xl font-black text-on-surface mb-8 px-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">terminal</span>
-                <span>CPAMC</span>
+            <div class="text-xl font-black text-on-surface mb-8 px-4 flex items-center gap-3">
+                <span class="market-logo">F</span>
+                <span>
+                    <span class="block leading-none">FogIDC</span>
+                    <span class="block text-xs font-bold text-on-surface-variant mt-1">Admin console</span>
+                </span>
             </div>
 
-            <nav class="flex-1 flex flex-col gap-1">
-                <a href="#dashboard" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="dashboard">
-                    <span class="material-symbols-outlined">dashboard</span>
-                    <span class="font-medium">概览</span>
-                </a>
-                <a href="#users" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="users">
-                    <span class="material-symbols-outlined">group</span>
-                    <span class="font-medium">用户管理</span>
-                </a>
-                <a href="#codes" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="codes">
-                    <span class="material-symbols-outlined">key</span>
-                    <span class="font-medium">激活码管理</span>
-                </a>
-                <a href="#logs" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="logs">
-                    <span class="material-symbols-outlined">receipt_long</span>
-                    <span class="font-medium">系统日志</span>
-                </a>
-                <a href="#settings" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="settings">
-                    <span class="material-symbols-outlined">settings</span>
-                    <span class="font-medium">系统设置</span>
-                </a>
+            <nav class="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
+                <div class="nav-section">
+                    <div class="px-3 mb-2 text-[11px] font-black uppercase tracking-[0.22em] text-on-surface-variant/70">仪表盘</div>
+                    <div class="space-y-1">
+                        <a href="#dashboard" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="dashboard">
+                            <span class="material-symbols-outlined">dashboard</span>
+                            <span class="font-medium">概览</span>
+                        </a>
+                        <a href="#users" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="users">
+                            <span class="material-symbols-outlined">group</span>
+                            <span class="font-medium">用户管理</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="px-3 mb-2 text-[11px] font-black uppercase tracking-[0.22em] text-on-surface-variant/70">Codex</div>
+                    <div class="space-y-1 pl-2 border-l border-outline-variant/30">
+                        <a href="#codex-users" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="codex-users">
+                            <span class="material-symbols-outlined">person_search</span>
+                            <span class="font-medium">用户管理</span>
+                        </a>
+                        <a href="#codex-codes" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="codex-codes">
+                            <span class="material-symbols-outlined">key_vertical</span>
+                            <span class="font-medium">激活码创建</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="px-3 mb-2 text-[11px] font-black uppercase tracking-[0.22em] text-on-surface-variant/70">ClaudeCode</div>
+                    <div class="space-y-1 pl-2 border-l border-outline-variant/30">
+                        <a href="#claude-users" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="claude-users">
+                            <span class="material-symbols-outlined">manage_accounts</span>
+                            <span class="font-medium">用户管理</span>
+                        </a>
+                        <a href="#claude-codes" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="claude-codes">
+                            <span class="material-symbols-outlined">vpn_key</span>
+                            <span class="font-medium">激活码创建</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="nav-section mt-1 pt-3 border-t border-outline-variant/20">
+                    <div class="space-y-1">
+                        <a href="#logs" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="logs">
+                            <span class="material-symbols-outlined">receipt_long</span>
+                            <span class="font-medium">系统日志</span>
+                        </a>
+                        <a href="#settings" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-on-surface-variant hover:bg-surface-container" data-tab="settings">
+                            <span class="material-symbols-outlined">settings</span>
+                            <span class="font-medium">系统设置</span>
+                        </a>
+                    </div>
+                </div>
             </nav>
 
             <div class="mt-auto pt-4 border-t border-outline-variant/20 flex items-center gap-3 px-2">
@@ -576,7 +515,11 @@
             <header class="flex flex-col w-full px-6 bg-surface-container-lowest h-20 z-30 border-b border-outline-variant/20">
                 <div class="flex justify-between items-center h-full">
                     <div class="flex items-center gap-4">
-                        <h1 id="page-title" class="text-lg font-bold text-on-surface">概览</h1>
+                    <h1 id="page-title" class="text-lg font-bold text-on-surface">概览</h1>
+                    <span class="market-console-badge hidden md:inline-flex">
+                        <span class="market-kicker-dot"></span>
+                        Marketplace UI
+                    </span>
                         <div class="relative hidden lg:block">
                             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">search</span>
                             <input
@@ -647,10 +590,13 @@
                 <div id="users-panel" class="tab-panel hidden">
                     <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/20">
                         <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-lg font-bold text-on-surface">用户列表</h3>
+                            <div>
+                                <h3 id="users-panel-title" class="text-lg font-bold text-on-surface">用户列表</h3>
+                                <p id="users-panel-subtitle" class="text-sm text-on-surface-variant mt-1">汇总所有平台用户</p>
+                            </div>
                             <button id="add-user-btn" class="bg-primary text-on-primary px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-2">
                                 <span class="material-symbols-outlined text-sm">add</span>
-                                添加用户
+                                <span id="add-user-btn-label">添加用户</span>
                             </button>
                         </div>
 
@@ -676,7 +622,10 @@
                 <div id="codes-panel" class="tab-panel hidden">
                     <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/20">
                         <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-lg font-bold text-on-surface">激活码列表</h3>
+                            <div>
+                                <h3 id="codes-panel-title" class="text-lg font-bold text-on-surface">激活码列表</h3>
+                                <p id="codes-panel-subtitle" class="text-sm text-on-surface-variant mt-1">查看所有平台 CDK</p>
+                            </div>
                             <div class="flex gap-2">
                                 <button id="export-codes-btn" class="bg-surface-container text-on-surface px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-2">
                                     <span class="material-symbols-outlined text-sm">download</span>
@@ -684,7 +633,7 @@
                                 </button>
                                 <button id="add-code-btn" class="bg-primary text-on-primary px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-2">
                                     <span class="material-symbols-outlined text-sm">add</span>
-                                    生成激活码
+                                    <span id="add-code-btn-label">生成激活码</span>
                                 </button>
                             </div>
                         </div>
@@ -735,6 +684,22 @@
     <div id="modal-root"></div>
 
     <!-- JavaScript -->
-    <script src="/admin/admin-panel-v2.js?v=20260407-settings"></script>
+    <script src="/admin/admin-panel-v2.js?v=20260617-platform-scope1"></script>
+    <script>
+        let marketPointerRaf = 0;
+        window.addEventListener('load', () => {
+            requestAnimationFrame(() => document.body.classList.add('motion-ready'));
+        }, { once: true });
+
+        window.addEventListener('pointermove', (event) => {
+            if (marketPointerRaf) return;
+            marketPointerRaf = requestAnimationFrame(() => {
+                document.body.classList.add('is-pointer-active');
+                document.body.style.setProperty('--cursor-x', `${event.clientX}px`);
+                document.body.style.setProperty('--cursor-y', `${event.clientY}px`);
+                marketPointerRaf = 0;
+            });
+        });
+    </script>
 </body>
 </html>

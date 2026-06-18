@@ -3,11 +3,11 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# CLIProxy Activator - Demo Script
+# FogIDC Activator - Demo Script
 # This script demonstrates the main features of the activator
 
 echo "=================================="
-echo "CLIProxy Activator - Demo"
+echo "FogIDC Activator - Demo"
 echo "=================================="
 echo ""
 

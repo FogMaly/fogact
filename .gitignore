@@ -18,6 +18,8 @@ pids/
 *.seed
 data/*.json
 !data/.gitkeep
+config/upstream.json
+config/*.local.json
 
 # Coverage
 coverage/

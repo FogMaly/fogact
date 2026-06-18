@@ -1,0 +1,14 @@
+{
+  "provider": "newapi",
+  "baseUrl": "https://newapi.example.com",
+  "apiKey": "sk-your-upstream-newapi-key",
+  "services": {
+    "claude": {
+      "baseUrl": "https://newapi.example.com"
+    },
+    "codex": {
+      "baseUrl": "https://newapi.example.com/v1"
+    }
+  },
+  "timeoutMs": 10000
+}
