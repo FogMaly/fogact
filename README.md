@@ -1,5 +1,7 @@
 # FogIDC Activator
 
+[简体中文](./README.zh-CN.md) | English
+
 FogIDC Activator is a multi-platform activation helper for Codex, Claude Code, OpenCode and OpenClaw. It provides one-command VPS bootstrap, activation-code based setup, direct NewAPI key setup, config backup/restore, and a local Web UI.
 
 ## 🚀 One-command Install
