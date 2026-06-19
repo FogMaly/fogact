@@ -258,6 +258,35 @@ try {
 }
 
 console.log("");
+
+// Test 11: Reusable activation code response handling
+console.log("Test 11: Reusable activation semantics...");
+try {
+  const { normalizeEntitlement } = require("../lib/services/activation-orchestrator.js");
+
+  const entitlement = normalizeEntitlement({
+    success: true,
+    valid: true,
+    data: {
+      service: "Codex",
+      status: "active",
+      baseUrl: "https://cliproxy.fogidc.com/v1",
+      apiKey: "sk-test",
+      quota: { total: 1000, used: 0 },
+    },
+  });
+
+  if (!entitlement.services.includes("codex")) {
+    console.log("✗ Active activation code was not treated as reusable");
+    process.exit(1);
+  }
+  console.log("✓ Active activation code can be reused for configuration");
+} catch (err) {
+  console.log("✗ Reusable activation semantic test failed:", err.message);
+  process.exit(1);
+}
+
+console.log("");
 console.log("=== All Tests Passed ===");
 console.log("");
 console.log("You can now test the CLI with:");

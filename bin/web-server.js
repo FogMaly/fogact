@@ -36,15 +36,25 @@ const USER_STATUS_KEY_MAP = {
 const CODE_STATUS_MAP = {
   unused: "unused",
   "未使用": "unused",
-  used: "used",
-  "已使用": "used",
+  "未激活": "unused",
+  active: "active",
+  "活跃": "active",
+  "已激活": "active",
+  used: "active",
+  "已使用": "active",
+  disabled: "disabled",
+  blocked: "disabled",
+  banned: "disabled",
+  "已禁用": "disabled",
+  "禁用": "disabled",
   expired: "expired",
   "已过期": "expired",
 };
 
 const CODE_STATUS_LABEL_MAP = {
-  unused: "未使用",
-  used: "已使用",
+  unused: "未激活",
+  active: "活跃",
+  disabled: "已禁用",
   expired: "已过期",
 };
 
@@ -181,7 +191,7 @@ function normalizeCodeStatus(codeOrStatus, expiresAt) {
 }
 
 function getCodeStatusLabel(status) {
-  return CODE_STATUS_LABEL_MAP[normalizeCodeStatus(status)] || "未使用";
+  return CODE_STATUS_LABEL_MAP[normalizeCodeStatus(status)] || "未激活";
 }
 
 function serializeUser(user) {
@@ -392,10 +402,11 @@ function serveStaticFile(filePath, res) {
 
     // For admin panel files, always use no-cache to prevent stale content
     const isAdminFile = filePath.includes('admin-panel');
+    const isUserAsset = filePath.includes(`${path.sep}user${path.sep}assets${path.sep}`);
 
     res.writeHead(200, {
       "Content-Type": contentType,
-      "Cache-Control": (ext === '.html' || isAdminFile)
+      "Cache-Control": (ext === '.html' || isAdminFile || isUserAsset)
         ? 'no-cache, no-store, must-revalidate'
         : 'public, max-age=31536000',
       "Pragma": "no-cache",
@@ -596,7 +607,14 @@ const server = http.createServer((req, res) => {
     const service = getServiceKey(url.searchParams.get("service") || "codex", "codex");
     const upstream = loadUpstreamConfig({ configPath: getUpstreamConfigPath() });
     const upstreamUrl = getServiceBaseUrl(upstream, service) || upstream.baseUrl;
-    const publicUrl = `https://${req.headers.host}`.replace(/\/+$/, "");
+    const forwardedHost = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+    const publicHost = forwardedHost && !forwardedHost.includes('fogact.fogact.com')
+      ? forwardedHost
+      : 'cliproxy.fogidc.com';
+    const isLocalHost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[?::1\]?)(:\d+)?$/i.test(publicHost);
+    const defaultProtocol = isLocalHost ? 'http' : 'https';
+    const publicProtocol = String(req.headers['x-forwarded-proto'] || defaultProtocol).split(',')[0].trim() || defaultProtocol;
+    const publicUrl = trimTrailingSlash(process.env.FOGACT_PUBLIC_BASE_URL || `${publicProtocol}://${publicHost}`);
     const nodes = [
       { name: "FogAct", url: publicUrl, region: "Global" },
     ];
@@ -933,10 +951,15 @@ const server = http.createServer((req, res) => {
         return;
       }
 
-      // 检查激活码状态
-      if (normalizeCodeStatus(code) === 'used') {
+      const statusKey = normalizeCodeStatus(code);
+      if (statusKey === 'disabled') {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, message: '激活码已被使用' }));
+        res.end(JSON.stringify({ success: false, message: '此 API Key 已被禁用，无法激活配置' }));
+        return;
+      }
+      if (statusKey === 'expired') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: '激活码已过期' }));
         return;
       }
 
@@ -952,10 +975,10 @@ const server = http.createServer((req, res) => {
         return;
       }
 
-      // 更新激活码状态
+      // 记录最近一次配置时间；不消费激活码，允许同一个 Key 反复自动配置。
       const updatedCode = codeDb.update(code.id, {
-        status: 'used',
-        usedBy: userId || username || email || 'unknown',
+        status: 'active',
+        usedBy: userId || username || email || code.usedBy || 'unknown',
         lastUsedAt: new Date().toISOString(),
         activatedService: serializedCode.service,
         activatedServiceKey: serializedCode.serviceKey
@@ -1069,9 +1092,9 @@ const server = http.createServer((req, res) => {
     const totalUsers = users.length;
     const activeUsers = users.filter(u => u.statusKey === 'active').length;
     const totalCodes = codes.length;
-    const usedCodes = codes.filter(c => c.status === 'used').length;
-    const unusedCodes = codes.filter(c => c.status === 'unused').length;
-    const expiredCodes = codes.filter(c => c.status === 'expired').length;
+    const usedCodes = codes.filter(c => normalizeCodeStatus(c) === 'active').length;
+    const unusedCodes = codes.filter(c => normalizeCodeStatus(c) === 'unused').length;
+    const expiredCodes = codes.filter(c => normalizeCodeStatus(c) === 'expired').length;
 
     const stats = {
       totalUsers,
@@ -1171,9 +1194,14 @@ const server = http.createServer((req, res) => {
         }
 
         const serializedCode = serializeCode(code);
-        if (serializedCode.status !== 'unused') {
+        if (serializedCode.status === 'expired') {
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, valid: false, message: serializedCode.status === 'expired' ? '激活码已过期' : '激活码已被使用' }));
+          res.end(JSON.stringify({ success: false, valid: false, message: '激活码已过期' }));
+          return;
+        }
+        if (serializedCode.status === 'disabled') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, valid: false, message: '此 API Key 已被禁用，无法激活配置' }));
           return;
         }
 
@@ -1261,7 +1289,7 @@ const server = http.createServer((req, res) => {
       const codes = codeDb.getAll().filter(c =>
         c.usedBy === username ||
         c.usedBy === user?.username ||
-        c.status === 'used'
+        normalizeCodeStatus(c) === 'active'
       );
       const code = codes[0];
 
@@ -1482,7 +1510,7 @@ server.listen(PORT, '0.0.0.0', () => {
     let refreshedCount = 0;
 
     for (const code of codes) {
-      if (code.status !== 'used') continue;
+      if (normalizeCodeStatus(code) !== 'active') continue;
 
       const lastRefresh = code.lastQuotaRefresh ? new Date(code.lastQuotaRefresh) : null;
       const lastRefreshDate = lastRefresh

@@ -170,8 +170,10 @@ function getUserStatusMeta(user) {
 function getCodeStatusMeta(code) {
   const key = code.status || 'unused';
   const meta = {
-    unused: { label: code.statusLabel || '未使用', className: 'bg-green-50 text-green-700' },
-    used: { label: code.statusLabel || '已使用', className: 'bg-surface-container text-on-surface-variant' },
+    unused: { label: code.statusLabel || '未激活', className: 'bg-amber-50 text-amber-700' },
+    active: { label: code.statusLabel || '活跃', className: 'bg-green-50 text-green-700' },
+    used: { label: code.statusLabel || '活跃', className: 'bg-green-50 text-green-700' },
+    disabled: { label: code.statusLabel || '已禁用', className: 'bg-error-container text-on-error-container' },
     expired: { label: code.statusLabel || '已过期', className: 'bg-error-container text-on-error-container' }
   };
   return meta[key] || meta.unused;
@@ -229,7 +231,7 @@ function getServiceOptionsForScope(currentValue = '') {
 
 const DEFAULT_SETTINGS = {
   site: {
-    siteName: 'FogIDC Activator',
+    siteName: 'FogAct',
     siteDescription: '统一管理用户、激活码与订阅配置。',
     siteUrl: 'https://example.com',
     logoUrl: '',
@@ -259,7 +261,7 @@ const DEFAULT_SETTINGS = {
   email: {
     smtpHost: '',
     smtpPort: 587,
-    senderName: 'FogIDC Activator',
+    senderName: 'FogAct',
     senderEmail: '',
     enableTls: true
   },
@@ -270,7 +272,7 @@ const DEFAULT_SETTINGS = {
     notifyLowQuota: true
   },
   app: {
-    appName: 'CLIProxy Client',
+    appName: 'FogAct Client',
     appDownloadUrl: '',
     iosUrl: '',
     androidUrl: '',
@@ -356,18 +358,22 @@ const UI = {
   initThemeToggle() {
     const button = document.getElementById('theme-toggle');
     const html = document.documentElement;
-    const savedTheme = localStorage.getItem('admin_theme') || 'light';
+    const savedTheme = localStorage.getItem('fogact_theme') || localStorage.getItem('admin_theme') || 'system';
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialDark = savedTheme === 'dark' || (savedTheme === 'system' && prefersDark);
 
-    if (savedTheme === 'dark') {
-      html.classList.add('dark');
-      button.querySelector('.material-symbols-outlined').textContent = 'dark_mode';
-    }
+    html.classList.toggle('dark', initialDark);
+    html.style.colorScheme = initialDark ? 'dark' : 'light';
+    button.querySelector('.material-symbols-outlined').textContent = initialDark ? 'dark_mode' : 'light_mode';
+    button.setAttribute('aria-label', initialDark ? '切换浅色模式' : '切换暗黑模式');
 
     button.addEventListener('click', () => {
       html.classList.toggle('dark');
       const isDark = html.classList.contains('dark');
       button.querySelector('.material-symbols-outlined').textContent = isDark ? 'dark_mode' : 'light_mode';
-      localStorage.setItem('admin_theme', isDark ? 'dark' : 'light');
+      button.setAttribute('aria-label', isDark ? '切换浅色模式' : '切换暗黑模式');
+      html.style.colorScheme = isDark ? 'dark' : 'light';
+      localStorage.setItem('fogact_theme', isDark ? 'dark' : 'light');
     });
   },
 
@@ -375,13 +381,15 @@ const UI = {
     const palette = {
       success: 'bg-green-50 border-green-500 text-green-800',
       error: 'bg-error-container border-error text-on-error-container',
-      info: 'bg-primary-fixed border-primary text-on-primary-fixed'
+      info: 'bg-primary-fixed border-primary text-on-primary-fixed',
+      warning: 'bg-warning-container border-warning text-on-surface'
     };
 
     const icons = {
       success: 'check_circle',
       error: 'error',
-      info: 'info'
+      info: 'info',
+      warning: 'warning'
     };
 
     const node = document.createElement('div');
@@ -465,7 +473,7 @@ const Dashboard = {
     const cards = [
       { label: '总用户数', value: stats.totalUsers || 0, icon: 'group', color: 'primary', sub: '全部用户' },
       { label: '活跃用户', value: stats.activeUsers || 0, icon: 'trending_up', color: 'tertiary', sub: '当前活跃状态' },
-      { label: '总激活码', value: stats.totalCodes || 0, icon: 'key', color: 'secondary', sub: `未使用 ${stats.unusedCodes || 0}` },
+      { label: '总激活码', value: stats.totalCodes || 0, icon: 'key', color: 'secondary', sub: `未激活 ${stats.unusedCodes || 0}` },
       { label: '已过期', value: stats.expiredCodes || 0, icon: 'schedule', color: 'error', sub: stats.systemStatus || '运行正常' }
     ];
 
@@ -569,7 +577,7 @@ const UserManagement = {
   renderTable() {
     const container = document.getElementById('users-table-container');
     if (!AppState.users.length) {
-      container.innerHTML = '<p class="text-on-surface-variant text-center py-8">暂无用户数据</p>';
+      container.innerHTML = '<p class="text-on-surface-variant text-center py-8">暂无用户数据，可点击右上角添加用户。</p>';
       return;
     }
 
@@ -700,7 +708,7 @@ const UserManagement = {
     try {
       const result = await API.deleteUser(id);
       if (!result.success) {
-        UI.showNotification(result.message || '删除失败', 'error');
+        UI.showNotification(result.message || '用户删除失败', 'error');
         return;
       }
       UI.showNotification('用户已删除', 'success');
@@ -712,7 +720,7 @@ const UserManagement = {
         return;
       }
       console.error(error);
-      UI.showNotification('删除失败', 'error');
+      UI.showNotification('用户删除失败', 'error');
     }
   }
 };
@@ -761,7 +769,7 @@ const CodeManagement = {
   renderTable() {
     const container = document.getElementById('codes-table-container');
     if (!AppState.codes.length) {
-      container.innerHTML = '<p class="text-on-surface-variant text-center py-8">暂无激活码数据</p>';
+      container.innerHTML = '<p class="text-on-surface-variant text-center py-8">暂无激活码数据，可点击右上角生成 CDK。</p>';
       return;
     }
 
@@ -1096,8 +1104,9 @@ const CodeManagement = {
         <div>
           <label class="block text-sm font-medium text-on-surface mb-2">状态</label>
           <select id="edit-code-status" class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none">
-            <option value="unused" ${code.status === 'unused' ? 'selected' : ''}>未使用</option>
-            <option value="used" ${code.status === 'used' ? 'selected' : ''}>已使用</option>
+            <option value="unused" ${code.status === 'unused' ? 'selected' : ''}>未激活</option>
+            <option value="active" ${code.status === 'active' || code.status === 'used' ? 'selected' : ''}>活跃</option>
+            <option value="disabled" ${code.status === 'disabled' ? 'selected' : ''}>已禁用</option>
             <option value="expired" ${code.status === 'expired' ? 'selected' : ''}>已过期</option>
           </select>
         </div>
@@ -1196,7 +1205,7 @@ const CodeManagement = {
     try {
       const result = await API.createCode(payload);
       if (!result.success) {
-        UI.showNotification(result.message || '创建失败', 'error');
+        UI.showNotification(result.message || '激活码创建失败', 'error');
         return;
       }
       UI.hideModal();
@@ -1209,7 +1218,7 @@ const CodeManagement = {
         return;
       }
       console.error(error);
-      UI.showNotification('创建失败', 'error');
+      UI.showNotification('激活码创建失败', 'error');
     }
   },
 
@@ -1225,7 +1234,7 @@ const CodeManagement = {
     try {
       const result = await API.updateCode(id, payload);
       if (!result.success) {
-        UI.showNotification(result.message || '更新失败', 'error');
+        UI.showNotification(result.message || '激活码更新失败', 'error');
         return;
       }
       UI.hideModal();
@@ -1238,7 +1247,7 @@ const CodeManagement = {
         return;
       }
       console.error(error);
-      UI.showNotification('更新失败', 'error');
+      UI.showNotification('激活码更新失败', 'error');
     }
   },
 
@@ -1247,7 +1256,7 @@ const CodeManagement = {
     try {
       const result = await API.deleteCode(id);
       if (!result.success) {
-        UI.showNotification(result.message || '删除失败', 'error');
+        UI.showNotification(result.message || '激活码删除失败', 'error');
         return;
       }
       UI.showNotification('激活码已删除', 'success');
@@ -1259,19 +1268,19 @@ const CodeManagement = {
         return;
       }
       console.error(error);
-      UI.showNotification('删除失败', 'error');
+      UI.showNotification('激活码删除失败', 'error');
     }
   }
 };
 
 const LogsManagement = {
   render() {
-    document.getElementById('logs-container').innerHTML = '<p class="text-on-surface-variant text-center py-8">日志功能开发中...</p>';
+    document.getElementById('logs-container').innerHTML = '<p class="text-on-surface-variant text-center py-8">暂无日志记录，后续操作会在这里展示。</p>';
   }
 };
 
 const SettingsManagement = {
-  storageKey: 'cliproxy_admin_settings_v1',
+  storageKey: 'fogact_admin_settings_v1',
 
   sections: [
     {
