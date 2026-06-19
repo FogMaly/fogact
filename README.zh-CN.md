@@ -27,7 +27,7 @@ npx fogact
 
 不要运行 `npm fogact`；npm 会把它当成 npm 子命令。正确方式是 `npx fogact`。
 
-FogAct 启动时会自动检查 npm 最新版本；检测到旧版本会先更新，再进入菜单。需要跳过检查时可设置 `FOGACT_SKIP_UPDATE=1`。
+FogAct 启动时会自动检查 npm 最新版本；检测到旧版本会先更新，再进入菜单。激活码默认连接公网面板 `https://cliproxy.fogidc.com`，需要切换测试后端时可设置 `FOGACT_API_BASE`。需要跳过更新检查时可设置 `FOGACT_SKIP_UPDATE=1`。
 
 ## 干净 VPS
 

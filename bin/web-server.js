@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { userDb, codeDb, initializeSampleData } = require("../lib/services/database");
-const { DEFAULT_CONFIG_PATH, loadUpstreamConfig } = require("../lib/config/upstream");
+const { DEFAULT_CONFIG_PATH, getServiceBaseUrl, loadUpstreamConfig } = require("../lib/config/upstream");
 const { readJsonFile, writeJsonFile } = require("../lib/utils/json-file");
 const { maskKey, verifyNewApiKey } = require("../lib/services/newapi");
 
@@ -213,12 +213,71 @@ function serializeCode(code) {
   };
 }
 
+function getActivationPlatforms(serviceKey) {
+  if (serviceKey === "codex") return ["codex-cli"];
+  if (serviceKey === "claude") return ["claude-code"];
+  return [];
+}
+
+function buildActivationData(serializedCode) {
+  const serviceKey = serializedCode.serviceKey;
+  const upstream = loadUpstreamConfig({ configPath: getUpstreamConfigPath() });
+  const serviceConfig = serializedCode.serviceConfig || {};
+  const baseUrl = trimTrailingSlash(
+    serializedCode.baseUrl ||
+    serializedCode.baseURL ||
+    serializedCode.url ||
+    serviceConfig.baseUrl ||
+    serviceConfig.baseURL ||
+    serviceConfig.url ||
+    getServiceBaseUrl(upstream, serviceKey) ||
+    upstream.baseUrl
+  );
+  const apiKey = String(
+    serializedCode.apiKey ||
+    serializedCode.key ||
+    serializedCode.token ||
+    serviceConfig.apiKey ||
+    serviceConfig.key ||
+    serviceConfig.token ||
+    upstream.apiKey ||
+    ""
+  ).trim();
+
+  return {
+    code: serializedCode.code,
+    service: serializedCode.service,
+    serviceKey,
+    services: [serviceKey],
+    platforms: getActivationPlatforms(serviceKey),
+    allowedModels: serializedCode.allowedModels,
+    quota: serializedCode.quota,
+    expiresAt: serializedCode.expiresAt,
+    baseUrl,
+    apiKey,
+  };
+}
+
+function ensureActivationDataReady(res, activationData) {
+  if (activationData.baseUrl && activationData.apiKey) {
+    return true;
+  }
+
+  res.writeHead(500, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({
+    success: false,
+    valid: false,
+    message: '上游服务未配置完整，请先在管理面板设置 NewAPI Base URL 和 API Key'
+  }));
+  return false;
+}
+
 function trimTrailingSlash(value) {
   return String(value || "").trim().replace(/\/+$/, "");
 }
 
 function getUpstreamConfigPath() {
-  return process.env.CLIPROXY_UPSTREAM_CONFIG || DEFAULT_CONFIG_PATH;
+  return process.env.FOGACT_UPSTREAM_CONFIG || DEFAULT_CONFIG_PATH;
 }
 
 function readRawUpstreamConfig() {
@@ -865,6 +924,11 @@ const server = http.createServer((req, res) => {
         return;
       }
 
+      const activationData = buildActivationData(serializedCode);
+      if (!ensureActivationDataReady(res, activationData)) {
+        return;
+      }
+
       // 更新激活码状态
       const updatedCode = codeDb.update(code.id, {
         status: 'used',
@@ -886,12 +950,7 @@ const server = http.createServer((req, res) => {
         success: true,
         message: '激活成功',
         data: {
-          code: updatedCode.code,
-          service: serializeCode(updatedCode).service,
-          serviceKey: serializeCode(updatedCode).serviceKey,
-          allowedModels: serializeCode(updatedCode).allowedModels,
-          quota: updatedCode.quota,
-          expiresAt: updatedCode.expiresAt,
+          ...buildActivationData(serializeCode(updatedCode)),
           activatedAt: updatedCode.lastUsedAt
         }
       }));
@@ -1095,20 +1154,17 @@ const server = http.createServer((req, res) => {
           return;
         }
 
+        const activationData = buildActivationData(serializedCode);
+        if (!ensureActivationDataReady(res, activationData)) {
+          return;
+        }
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           success: true,
           valid: true,
           message: '验证成功',
-          data: {
-            code: serializedCode.code,
-            service: serializedCode.service,
-            services: [serializedCode.serviceKey],
-            platforms: serializedCode.serviceKey === 'codex' ? ['codex-cli'] : ['claude-code'],
-            allowedModels: serializedCode.allowedModels,
-            quota: serializedCode.quota,
-            expiresAt: serializedCode.expiresAt
-          }
+          data: activationData
         }));
         return;
       }
@@ -1277,10 +1333,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Proxy requests to yunyi.cfd API for user frontend
+  // Proxy requests to configured upstream API for user frontend
   if (urlPath.startsWith("/proxy/")) {
     const targetPath = urlPath.replace("/proxy", "");
-    const targetUrl = `https://yunyi.cfd${targetPath}`;
+    const proxyBaseUrl = trimTrailingSlash(process.env.FOGACT_PROXY_TARGET || readRawUpstreamConfig().baseUrl || "");
+
+    if (!proxyBaseUrl) {
+      res.writeHead(502, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: false, message: "Proxy target is not configured" }));
+      return;
+    }
+
+    const targetUrl = `${proxyBaseUrl}${targetPath}`;
 
     const options = {
       method: req.method,
