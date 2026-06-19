@@ -585,6 +585,29 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (urlPath === "/health" && req.method === "GET") {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, status: 'ok', service: 'fogact' }));
+    return;
+  }
+
+  if (urlPath === "/api/nodes" && req.method === "GET") {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const service = getServiceKey(url.searchParams.get("service") || "codex", "codex");
+    const upstream = loadUpstreamConfig({ configPath: getUpstreamConfigPath() });
+    const upstreamUrl = getServiceBaseUrl(upstream, service) || upstream.baseUrl;
+    const publicUrl = `https://${req.headers.host}`.replace(/\/+$/, "");
+    const nodes = [
+      { name: "FogAct", url: publicUrl, region: "Global" },
+    ];
+    if (upstreamUrl) {
+      nodes.push({ name: service === "claude" ? "Claude Upstream" : "Codex Upstream", url: upstreamUrl, region: "Upstream" });
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, nodes }));
+    return;
+  }
+
   // Handle users API
   if (urlPath === "/api/users" && req.method === "GET") {
     if (!isAuthenticated(req)) {

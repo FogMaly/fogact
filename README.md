@@ -51,7 +51,7 @@ Minimum bootstrap requirement: the machine needs `curl` or `wget`. The installer
 2. Choose `1. Activate service`.
 3. Enter the activation / redeem code.
 4. FogAct auto-detects the Codex / Claude entitlement and shows only supported targets.
-5. Confirm the plan and restart the target tool.
+5. Confirm activation, let FogAct write the config, then restart the target tool.
 
 FogAct backs up existing configuration before writing new files.
 
