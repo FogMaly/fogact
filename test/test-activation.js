@@ -97,7 +97,7 @@ console.log("");
 // Test 5: CLI program structure
 console.log("Test 5: CLI program structure...");
 try {
-  const { buildProgram } = require("../lib/index.js");
+  const { buildProgram, isNewerVersion } = require("../lib/index.js");
 
   const program = buildProgram();
   const commands = program.commands.map(cmd => cmd.name());
@@ -111,6 +111,10 @@ try {
     const optionNames = activateCommand.options.map(option => option.long);
     if (!optionNames.includes("--api-key") || !optionNames.includes("--yes")) {
       console.log("✗ Missing NewAPI activation options");
+      process.exit(1);
+    }
+    if (!isNewerVersion("1.1.7", "1.1.6") || isNewerVersion("1.1.6", "1.1.6") || isNewerVersion("1.1.5", "1.1.6")) {
+      console.log("✗ Version comparison failed");
       process.exit(1);
     }
   } else {
@@ -132,7 +136,7 @@ try {
   if (fs.existsSync(frontendPath)) {
     const content = fs.readFileSync(frontendPath, "utf8");
     if (
-      content.includes("FogIDC Activator") &&
+      content.includes("FogAct") &&
       content.includes('href="/user/"') &&
       content.includes('href="/admin/"') &&
       content.includes('href="/activate.html"')

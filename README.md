@@ -27,6 +27,8 @@ That is the user-facing command. Running it opens the interactive menu:
 
 Do not run `npm fogact`; npm treats that as an npm subcommand. Use `npx fogact`.
 
+FogAct checks npm for the latest version before opening the menu. If an older installed version is detected, it updates first and then continues. Set `FOGACT_SKIP_UPDATE=1` to skip this check.
+
 ## Clean VPS
 
 If the machine does not have Node.js/npm yet, use the bootstrap installer first:
