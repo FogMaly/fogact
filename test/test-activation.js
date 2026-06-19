@@ -47,6 +47,12 @@ try {
     { name: "FogAct", url: "https://node2.example.com", available: true, avgLatency: 80, latencyStdDev: 4, score: 88, ping: { ok: true, latency: 20 }, tcp: { ok: true, latency: 30 }, http: { ok: true, latency: 80 } },
     { name: "Backup", url: "https://node3.example.com", available: false, avgLatency: -1, latencyStdDev: 0, score: 0, ping: { ok: false, latency: -1 }, tcp: { ok: false, latency: -1 }, http: { ok: false, latency: -1 } },
   ]);
+  const colorTable = formatNodeResults([
+    { name: "Fast", url: "https://fast.example.com", available: true, avgLatency: 49, latencyStdDev: 4, score: 90, ping: { ok: true, latency: 20 }, tcp: { ok: true, latency: 30 }, http: { ok: true, latency: 49 } },
+    { name: "Mid", url: "https://mid.example.com", available: true, avgLatency: 99, latencyStdDev: 4, score: 80, ping: { ok: true, latency: 70 }, tcp: { ok: true, latency: 80 }, http: { ok: true, latency: 99 } },
+    { name: "Slow", url: "https://slow.example.com", available: true, avgLatency: 199, latencyStdDev: 4, score: 70, ping: { ok: true, latency: 170 }, tcp: { ok: true, latency: 180 }, http: { ok: true, latency: 199 } },
+    { name: "Down", url: "https://down.example.com", available: false, avgLatency: -1, latencyStdDev: 0, score: 0, ping: { ok: false, latency: -1 }, tcp: { ok: false, latency: -1 }, http: { ok: false, latency: -1 } },
+  ], { color: true });
 
   if (
     best &&
@@ -59,7 +65,12 @@ try {
     table.includes("tcp:30ms") &&
     table.includes("http:80ms") &&
     !table.includes("推荐节点") &&
-    !table.includes("状态 节点")
+    !table.includes("状态 节点") &&
+    colorTable.includes("\u001b[32m") &&
+    colorTable.includes("\u001b[33m") &&
+    colorTable.includes("\u001b[31m") &&
+    colorTable.includes("\u001b[33m★ 最优\u001b[0m") &&
+    colorTable.includes("\u001b[31m不可达\u001b[0m")
   ) {
     console.log("✓ Node selection works correctly");
   } else {
@@ -159,6 +170,7 @@ try {
     applyMenuInput,
     enterFixedMenuScreen,
     leaveFixedMenuScreen,
+    renderMenu,
     shouldUseFixedMenuScreen,
     waitForMenuReturn,
   } = require("../lib/index.js");
@@ -166,6 +178,7 @@ try {
   const wrapped = applyMenuInput("\u001b[A", 0, 4);
   const numberSelect = applyMenuInput("3", 0, 4);
   const enter = applyMenuInput("\r", 2, 4);
+  const menu = renderMenu(0);
   const writes = [];
   const fakeTty = { isTTY: true, write: (value) => writes.push(value) };
   enterFixedMenuScreen(fakeTty);
@@ -181,7 +194,8 @@ try {
     shouldUseFixedMenuScreen({ TERM: "dumb" }, fakeTty) ||
     !writes[0].includes("\u001b[?1049h") ||
     !writes[1].includes("\u001b[?1049l") ||
-    typeof waitForMenuReturn !== "function"
+    typeof waitForMenuReturn !== "function" ||
+    !menu.includes("\u001b[34m2. 测试节点\u001b[0m")
   ) {
     console.log("✗ Interactive menu key parsing failed");
     process.exit(1);
