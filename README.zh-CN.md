@@ -17,13 +17,13 @@ npx fogact
 如果是没有 Node.js/npm 的干净 VPS，再复制下面命令即可。脚本会在缺少 Node.js 时自动安装 Node.js，然后安装最新的 `fogact` npm 包；不要求机器预装 git 或 npx。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh
 ```
 
 使用激活码安装并激活 Codex：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- \
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh -s -- \
   --service codex \
   --code YOUR_ACTIVATION_CODE \
   --cliproxy-api-base https://your-activator.example.com
@@ -32,7 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/ins
 使用激活码安装并激活 Claude Code：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- \
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh -s -- \
   --service claude \
   --code YOUR_ACTIVATION_CODE \
   --cliproxy-api-base https://your-activator.example.com
@@ -41,7 +41,7 @@ curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/ins
 使用 NewAPI Key 直连安装并激活：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- \
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh -s -- \
   --service codex \
   --base-url https://newapi.example.com \
   --api-key sk-your-upstream-key
@@ -50,7 +50,7 @@ curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/ins
 安装后启动本地 Web UI：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- --web
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh -s -- --web
 ```
 
 > 最低引导要求：机器至少需要 `curl` 或 `wget` 用来下载脚本。常见 Linux 发行版上的 Node.js/npm 安装会由脚本自动处理。
@@ -96,7 +96,7 @@ fogact
 ### GitHub 源码
 
 ```bash
-git clone https://github.com/FogMaly/cliproxy-activator.git
+git clone https://github.com/FogMaly/fogact.git
 cd cliproxy-activator
 npm install
 node bin/cli.js --help
@@ -107,7 +107,7 @@ node bin/cli.js --help
 bootstrap 默认安装 npm 包。如果想直接克隆并运行 GitHub 源码版：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- --method github
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh -s -- --method github
 ```
 
 ## 激活用法

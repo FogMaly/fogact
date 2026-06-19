@@ -2,7 +2,7 @@
 set -eu
 
 PACKAGE_NAME="${FOGIDC_PACKAGE:-fogact}"
-GITHUB_REPO="${FOGIDC_GITHUB_REPO:-FogMaly/cliproxy-activator}"
+GITHUB_REPO="${FOGIDC_GITHUB_REPO:-FogMaly/fogact}"
 GIT_REF="${FOGIDC_GIT_REF:-main}"
 INSTALL_METHOD="${FOGIDC_INSTALL_METHOD:-npm}"
 INSTALL_DIR="${FOGIDC_INSTALL_DIR:-}"
@@ -32,8 +32,8 @@ usage() {
 FogAct bootstrap installer
 
 Usage:
-  curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh
-  curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- --service codex --code YOUR_CODE
+  curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh
+  curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh -s -- --service codex --code YOUR_CODE
 
 Options:
   --service <codex|claude>       Activate a specific service after install

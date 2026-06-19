@@ -12,9 +12,9 @@
     "activator"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/FogMaly/cliproxy-activator",
+  "homepage": "https://github.com/FogMaly/fogact",
   "bugs": {
-    "url": "https://github.com/FogMaly/cliproxy-activator/issues"
+    "url": "https://github.com/FogMaly/fogact/issues"
   },
   "bin": {
     "fogact": "bin/cli.js",
@@ -48,6 +48,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FogMaly/cliproxy-activator.git"
+    "url": "git+https://github.com/FogMaly/fogact.git"
   }
 }

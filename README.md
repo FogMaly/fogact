@@ -17,13 +17,13 @@ Do not use `npm fogact`; npm treats that as a built-in npm subcommand. Use `npx 
 For a clean VPS without Node.js/npm, copy this command. It can install Node.js automatically when missing, install the latest `fogact` npm package, and prepare the CLI without requiring git or npx.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh
 ```
 
 Install and activate Codex with an activation code:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- \
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh -s -- \
   --service codex \
   --code YOUR_ACTIVATION_CODE \
   --cliproxy-api-base https://your-activator.example.com
@@ -32,7 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/ins
 Install and activate Claude Code with an activation code:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- \
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh -s -- \
   --service claude \
   --code YOUR_ACTIVATION_CODE \
   --cliproxy-api-base https://your-activator.example.com
@@ -41,7 +41,7 @@ curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/ins
 Install and activate directly with a NewAPI key:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- \
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh -s -- \
   --service codex \
   --base-url https://newapi.example.com \
   --api-key sk-your-upstream-key
@@ -50,7 +50,7 @@ curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/ins
 Start the local Web UI after install:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- --web
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh -s -- --web
 ```
 
 > Minimum bootstrap requirement: the machine needs `curl` or `wget` to download the script. The script handles Node.js/npm installation on common Linux distributions.
@@ -96,7 +96,7 @@ fogact
 ### GitHub source
 
 ```bash
-git clone https://github.com/FogMaly/cliproxy-activator.git
+git clone https://github.com/FogMaly/fogact.git
 cd cliproxy-activator
 npm install
 node bin/cli.js --help
@@ -107,7 +107,7 @@ node bin/cli.js --help
 The bootstrap installs from npm by default. To clone and run directly from GitHub source instead:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh -s -- --method github
+curl -fsSL https://raw.githubusercontent.com/FogMaly/fogact/main/install.sh | sh -s -- --method github
 ```
 
 ## Activation Usage
