@@ -1339,7 +1339,7 @@ const server = http.createServer((req, res) => {
 server.on("error", (error) => {
   if (error.code === "EADDRINUSE") {
     console.error(`Port ${PORT} is already in use.`);
-    console.error(`Try: PORT=34021 cliproxy-activator web`);
+    console.error(`Try: PORT=34021 fogact web`);
     process.exit(1);
   }
 
@@ -1353,7 +1353,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log("");
   console.log("╔══════════════════════════════════════════════════════════════╗");
   console.log("║                                                              ║");
-  console.log("║           Cliproxy Activator - Web UI                        ║");
+  console.log("║           FogAct Web UI                                      ║");
   console.log("║                                                              ║");
   console.log("╚══════════════════════════════════════════════════════════════╝");
   console.log("");

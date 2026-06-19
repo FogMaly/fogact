@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * Test script for cliproxy-activator
+ * Test script for fogact
  * This simulates the activation flow without making real API calls
  */
 
 const path = require("path");
 const fs = require("fs");
 
-console.log("=== Cliproxy Activator Test Suite ===");
+console.log("=== FogAct Test Suite ===");
 console.log("");
 
 // Test 1: Module loading

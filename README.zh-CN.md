@@ -1,6 +1,6 @@
-# Cliproxy Activator
+# FogAct
 
-Cliproxy Activator 是一个多平台激活辅助工具，支持 Codex、Claude Code、OpenCode 和 OpenClaw。它提供全新 VPS 一键安装、激活码/CDK 激活、NewAPI Key 直连激活、配置备份/恢复，以及本地 Web 管理界面。
+FogAct 是一个多平台激活辅助工具，支持 Codex、Claude Code、OpenCode 和 OpenClaw。它提供全新 VPS 一键安装、激活码/CDK 激活、NewAPI Key 直连激活、配置备份/恢复，以及本地 Web 管理界面。
 
 [English](./README.md) | 简体中文
 
@@ -9,12 +9,12 @@ Cliproxy Activator 是一个多平台激活辅助工具，支持 Codex、Claude 
 直接用 npx 拉起终端激活菜单：
 
 ```bash
-npx cliproxy-activator
+npx fogact
 ```
 
-不要使用 `npm cliproxy-activator`；npm 会把它当作 npm 内置子命令。正确方式是 `npx cliproxy-activator`。
+不要使用 `npm fogact`；npm 会把它当作 npm 内置子命令。正确方式是 `npx fogact`。
 
-如果是没有 Node.js/npm 的干净 VPS，再复制下面命令即可。脚本会在缺少 Node.js 时自动安装 Node.js，然后安装最新的 `cliproxy-activator` npm 包；不要求机器预装 git 或 npx。
+如果是没有 Node.js/npm 的干净 VPS，再复制下面命令即可。脚本会在缺少 Node.js 时自动安装 Node.js，然后安装最新的 `fogact` npm 包；不要求机器预装 git 或 npx。
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh
@@ -57,7 +57,7 @@ curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/ins
 
 ## 功能说明
 
-- 安装并提供 `cliproxy-activator`、`cliproxy-web` 命令，同时保留 `fogidc-activator`、`fogidc-web` 兼容别名。
+- 安装并提供 `fogact`、`fogact-web` 命令，同时保留 `cliproxy-activator`、`cliproxy-web`、`fogidc-activator`、`fogidc-web` 兼容别名。
 - 为 Codex CLI 和 Claude Code 写入本地配置文件完成激活。
 - 可按需配置 OpenCode、OpenClaw、VSCode Codex 插件和 Cursor Codex 插件。
 - 会读取激活码能力范围，只展示该激活码支持的服务和平台。
@@ -83,14 +83,14 @@ curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/ins
 直接运行激活器，操作方式对齐 `npx yunyi-activator`：
 
 ```bash
-npx cliproxy-activator
+npx fogact
 ```
 
 ### npm 全局安装
 
 ```bash
-npm install -g cliproxy-activator
-cliproxy-activator
+npm install -g fogact
+fogact
 ```
 
 ### GitHub 源码
@@ -116,20 +116,20 @@ curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/ins
 
 ```bash
 export CLIPROXY_API_BASE="https://your-activator.example.com"
-cliproxy-activator wizard --code YOUR_ACTIVATION_CODE --yes
+fogact wizard --code YOUR_ACTIVATION_CODE --yes
 ```
 
 指定服务：
 
 ```bash
-cliproxy-activator wizard --service codex --code YOUR_ACTIVATION_CODE --yes
-cliproxy-activator wizard --service claude --code YOUR_ACTIVATION_CODE --yes
+fogact wizard --service codex --code YOUR_ACTIVATION_CODE --yes
+fogact wizard --service claude --code YOUR_ACTIVATION_CODE --yes
 ```
 
 只激活指定平台：
 
 ```bash
-cliproxy-activator wizard --service codex --platforms codex-cli,opencode --yes
+fogact wizard --service codex --platforms codex-cli,opencode --yes
 ```
 
 ### NewAPI Key 直连模式
@@ -137,19 +137,19 @@ cliproxy-activator wizard --service codex --platforms codex-cli,opencode --yes
 ```bash
 export NEWAPI_BASE_URL="https://newapi.example.com"
 export NEWAPI_API_KEY="sk-your-upstream-key"
-cliproxy-activator activate --service codex --yes
+fogact activate --service codex --yes
 ```
 
 本地测试时跳过上游验证：
 
 ```bash
-cliproxy-activator activate --service codex --api-key sk-test --yes --skip-verify
+fogact activate --service codex --api-key sk-test --yes --skip-verify
 ```
 
 旧版节点切换激活码模式仍然保留：
 
 ```bash
-cliproxy-activator activate --service codex --code YOUR_ACTIVATION_CODE --legacy
+fogact activate --service codex --code YOUR_ACTIVATION_CODE --legacy
 ```
 
 ## Web UI
@@ -157,7 +157,7 @@ cliproxy-activator activate --service codex --code YOUR_ACTIVATION_CODE --legacy
 启动本地 Web UI：
 
 ```bash
-cliproxy-web
+fogact-web
 ```
 
 或在源码仓库中运行：
@@ -185,15 +185,15 @@ npm run web
 ## 命令列表
 
 ```text
-cliproxy-activator
-cliproxy-activator web
-cliproxy-activator interactive
-cliproxy-activator wizard [--code <activation-code>] [--platforms <ids>]
-cliproxy-activator activate --service <claude|codex> [--api-key <key>] [--yes]
-cliproxy-activator activate --service <claude|codex> --code <activation-code> --legacy
-cliproxy-activator test
-cliproxy-activator restore --service <claude|codex>
-cliproxy-web
+fogact
+fogact web
+fogact interactive
+fogact wizard [--code <activation-code>] [--platforms <ids>]
+fogact activate --service <claude|codex> [--api-key <key>] [--yes]
+fogact activate --service <claude|codex> --code <activation-code> --legacy
+fogact test
+fogact restore --service <claude|codex>
+fogact-web
 ```
 
 ## 激活码能力范围
@@ -218,7 +218,7 @@ cliproxy-web
 - Claude Code：`~/.claude/settings.json` 和 `~/.claude.json`
 - OpenCode：`~/.config/opencode/opencode.json`
 - OpenClaw：`~/.openclaw/openclaw.json`
-- 备份目录：`~/.cliproxy-activator/backups/`
+- 备份目录：`~/.fogact/backups/`
 
 ## 开发
 
