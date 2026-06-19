@@ -1,6 +1,6 @@
 # FogAct
 
-FogAct 是一个简单的 Claude Code / Codex 激活工具。它的使用方式要和 `npx yunyi-activator` 一样：用户只运行一个命令，进入菜单，输入激活码或 API Key，然后自动写入本地配置。
+FogAct 是一个简单的 Claude Code / Codex 激活工具。它的使用方式要和 `npx fogact` 一样：用户只运行一个命令，进入菜单，输入激活码，FogAct 自动识别 Codex / Claude 能力并写入本地配置。
 
 [English](./README.md) | 简体中文
 
@@ -49,8 +49,8 @@ fogact
 
 1. 运行 `npx fogact`。
 2. 选择 `1. 激活服务`。
-3. 根据提示选择 Claude Code 或 Codex。
-4. 输入激活码或 API Key。
+3. 输入激活码 / 兑换码。
+4. FogAct 自动识别 Codex / Claude 能力，并只展示可激活的平台。
 5. 确认激活计划，然后重启对应工具。
 
 FogAct 写入新配置前会自动备份旧配置。
@@ -73,7 +73,7 @@ FogAct 写入新配置前会自动备份旧配置。
 fogact web
 ```
 
-Web UI 默认地址是 `http://localhost:34020/`。需要时可以设置 `PORT`、`ADMIN_PASSWORD`、`NEWAPI_BASE_URL`、`NEWAPI_API_KEY`、`CLIPROXY_API_BASE` 或 `CLIPROXY_UPSTREAM_CONFIG`。
+Web UI 默认地址是 `http://localhost:34020/`。需要时可以设置 `PORT`、`ADMIN_PASSWORD`、`NEWAPI_BASE_URL`、`NEWAPI_API_KEY`、`FOGACT_API_BASE` 或 `FOGACT_UPSTREAM_CONFIG`。
 
 ## 项目链接
 

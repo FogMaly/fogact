@@ -2,7 +2,7 @@
 
 [简体中文](./README.zh-CN.md) | English
 
-FogAct is a simple activation helper for Claude Code and Codex. It is designed to be used like `npx yunyi-activator`: run one command, choose from the menu, paste your activation code or API key, and let the tool write the local config automatically.
+FogAct is a simple activation helper for Claude Code and Codex. It is designed to be used like `npx fogact`: run one command, choose from the menu, paste your activation code, and let FogAct auto-detect the Codex / Claude entitlement before writing local config.
 
 ## Start
 
@@ -49,8 +49,8 @@ Minimum bootstrap requirement: the machine needs `curl` or `wget`. The installer
 
 1. Run `npx fogact`.
 2. Choose `1. Activate service`.
-3. Select Claude Code or Codex when prompted.
-4. Enter the activation code or API key.
+3. Enter the activation / redeem code.
+4. FogAct auto-detects the Codex / Claude entitlement and shows only supported targets.
 5. Confirm the plan and restart the target tool.
 
 FogAct backs up existing configuration before writing new files.
@@ -73,7 +73,7 @@ Most users only need `npx fogact`. Advanced operators can still use:
 fogact web
 ```
 
-The Web UI defaults to `http://localhost:34020/`. You can set `PORT`, `ADMIN_PASSWORD`, `NEWAPI_BASE_URL`, `NEWAPI_API_KEY`, `CLIPROXY_API_BASE`, or `CLIPROXY_UPSTREAM_CONFIG` when needed.
+The Web UI defaults to `http://localhost:34020/`. You can set `PORT`, `ADMIN_PASSWORD`, `NEWAPI_BASE_URL`, `NEWAPI_API_KEY`, `FOGACT_API_BASE`, or `FOGACT_UPSTREAM_CONFIG` when needed.
 
 ## Repository
 

@@ -1,14 +1,11 @@
 {
   "name": "fogact",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "FogAct activation helper for Claude Code and Codex",
   "keywords": [
     "fogact",
-    "cliproxy",
-    "fogidc",
     "claude",
     "codex",
-    "cli-proxy-api",
     "activator"
   ],
   "license": "MIT",
@@ -18,11 +15,7 @@
   },
   "bin": {
     "fogact": "bin/cli.js",
-    "fogact-web": "bin/web-server.js",
-    "cliproxy-activator": "bin/cli.js",
-    "cliproxy-web": "bin/web-server.js",
-    "fogidc-activator": "bin/cli.js",
-    "fogidc-web": "bin/web-server.js"
+    "fogact-web": "bin/web-server.js"
   },
   "main": "./lib/index.js",
   "files": [

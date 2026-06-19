@@ -15,7 +15,7 @@ console.log("");
 console.log("Test 1: Loading modules...");
 try {
   const { buildProgram, runCli } = require("../lib/index.js");
-  const { verifyActivationCode } = require("../lib/services/cliproxy-api.js");
+  const { verifyActivationCode } = require("../lib/services/fogact-api.js");
   const { testNodes, selectBestNode } = require("../lib/services/node-service.js");
   const { createBackup, listBackups } = require("../lib/services/backup-service.js");
   const { writeClaudeConfig } = require("../lib/config/claude.js");
@@ -183,7 +183,7 @@ try {
   const { buildCodexConfig } = require("../lib/config/codex.js");
   const config = buildCodexConfig('model = "old"\n[profiles.default]\nmodel = "keep"', 'https://newapi.example.com/v1', 'sk-test');
   if (
-    config.includes('model_provider = "yunyi"') &&
+    config.includes('model_provider = "fogact"') &&
     config.includes('base_url = "https://newapi.example.com/v1"') &&
     config.includes('experimental_bearer_token = "sk-test"') &&
     config.includes('[profiles.default]')

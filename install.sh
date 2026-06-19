@@ -1,25 +1,25 @@
 #!/bin/sh
 set -eu
 
-PACKAGE_NAME="${FOGIDC_PACKAGE:-fogact}"
-GITHUB_REPO="${FOGIDC_GITHUB_REPO:-FogMaly/fogact}"
-GIT_REF="${FOGIDC_GIT_REF:-main}"
-INSTALL_METHOD="${FOGIDC_INSTALL_METHOD:-npm}"
-INSTALL_DIR="${FOGIDC_INSTALL_DIR:-}"
-SERVICE="${FOGIDC_SERVICE:-}"
-CODE="${FOGIDC_CODE:-}"
-API_KEY="${NEWAPI_API_KEY:-${FOGIDC_API_KEY:-}}"
-BASE_URL="${NEWAPI_BASE_URL:-${FOGIDC_BASE_URL:-}}"
-CLIPROXY_BASE="${CLIPROXY_API_BASE:-}"
-PLATFORMS="${FOGIDC_PLATFORMS:-}"
-RUN_WEB="${FOGIDC_RUN_WEB:-0}"
-WEB_PORT="${PORT:-${FOGIDC_WEB_PORT:-34020}}"
-ADMIN_PASSWORD_VALUE="${ADMIN_PASSWORD:-${FOGIDC_ADMIN_PASSWORD:-}}"
-SKIP_VERIFY="${FOGIDC_SKIP_VERIFY:-0}"
-ALL_PLATFORMS="${FOGIDC_ALL:-0}"
-NO_ACTIVATE="${FOGIDC_NO_ACTIVATE:-0}"
-NO_REDEEM="${FOGIDC_NO_REDEEM:-0}"
-CREATE_SYSTEMD="${FOGIDC_SYSTEMD:-0}"
+PACKAGE_NAME="${FOGACT_PACKAGE:-fogact}"
+GITHUB_REPO="${FOGACT_GITHUB_REPO:-FogMaly/fogact}"
+GIT_REF="${FOGACT_GIT_REF:-main}"
+INSTALL_METHOD="${FOGACT_INSTALL_METHOD:-npm}"
+INSTALL_DIR="${FOGACT_INSTALL_DIR:-}"
+SERVICE="${FOGACT_SERVICE:-}"
+CODE="${FOGACT_CODE:-}"
+API_KEY="${NEWAPI_API_KEY:-${FOGACT_API_KEY:-}}"
+BASE_URL="${NEWAPI_BASE_URL:-${FOGACT_BASE_URL:-}}"
+FOGACT_API_BASE_VALUE="${FOGACT_API_BASE:-}"
+PLATFORMS="${FOGACT_PLATFORMS:-}"
+RUN_WEB="${FOGACT_RUN_WEB:-0}"
+WEB_PORT="${PORT:-${FOGACT_WEB_PORT:-34020}}"
+ADMIN_PASSWORD_VALUE="${ADMIN_PASSWORD:-${FOGACT_ADMIN_PASSWORD:-}}"
+SKIP_VERIFY="${FOGACT_SKIP_VERIFY:-0}"
+ALL_PLATFORMS="${FOGACT_ALL:-0}"
+NO_ACTIVATE="${FOGACT_NO_ACTIVATE:-0}"
+NO_REDEEM="${FOGACT_NO_REDEEM:-0}"
+CREATE_SYSTEMD="${FOGACT_SYSTEMD:-0}"
 
 log() { printf '%s\n' "==> $*"; }
 warn() { printf '%s\n' "WARN: $*" >&2; }
@@ -40,7 +40,7 @@ Options:
   --code <code>                  Activation / redeem code
   --api-key <key>                NewAPI key for direct activation
   --base-url <url>               NewAPI base URL for direct activation
-  --cliproxy-api-base <url>      Activation backend URL for code mode
+  --fogact-api-base <url>      Activation backend URL for code mode
   --platforms <ids>              Comma-separated target platform ids
   --all                          Configure all creatable optional platforms
   --skip-verify                  Skip NewAPI /v1/models verification
@@ -53,9 +53,9 @@ Options:
   -h, --help                     Show help
 
 Environment variables mirror the options:
-  FOGIDC_PACKAGE=fogact, FOGIDC_SERVICE, FOGIDC_CODE, NEWAPI_BASE_URL, NEWAPI_API_KEY,
-  CLIPROXY_API_BASE, FOGIDC_PLATFORMS, FOGIDC_ALL=1,
-  FOGIDC_SKIP_VERIFY=1, FOGIDC_RUN_WEB=1, FOGIDC_SYSTEMD=1
+  FOGACT_PACKAGE=fogact, FOGACT_SERVICE, FOGACT_CODE, NEWAPI_BASE_URL, NEWAPI_API_KEY,
+  FOGACT_API_BASE, FOGACT_PLATFORMS, FOGACT_ALL=1,
+  FOGACT_SKIP_VERIFY=1, FOGACT_RUN_WEB=1, FOGACT_SYSTEMD=1
 EOF
 }
 
@@ -65,7 +65,7 @@ while [ "$#" -gt 0 ]; do
     --code) CODE="${2:-}"; shift 2 ;;
     --api-key) API_KEY="${2:-}"; shift 2 ;;
     --base-url) BASE_URL="${2:-}"; shift 2 ;;
-    --cliproxy-api-base) CLIPROXY_BASE="${2:-}"; shift 2 ;;
+    --fogact-api-base) FOGACT_API_BASE_VALUE="${2:-}"; shift 2 ;;
     --platforms) PLATFORMS="${2:-}"; shift 2 ;;
     --all) ALL_PLATFORMS=1; shift ;;
     --skip-verify) SKIP_VERIFY=1; shift ;;
@@ -337,7 +337,7 @@ run_activation() {
 
   if [ -n "$BASE_URL" ]; then export NEWAPI_BASE_URL="$BASE_URL"; fi
   if [ -n "$API_KEY" ]; then export NEWAPI_API_KEY="$API_KEY"; fi
-  if [ -n "$CLIPROXY_BASE" ]; then export CLIPROXY_API_BASE="$CLIPROXY_BASE"; fi
+  if [ -n "$FOGACT_API_BASE_VALUE" ]; then export FOGACT_API_BASE="$FOGACT_API_BASE_VALUE"; fi
 
   set -- wizard --yes
   if [ -n "$SERVICE" ]; then set -- "$@" --service "$SERVICE"; fi
