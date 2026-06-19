@@ -177,24 +177,24 @@ try {
 
 console.log("");
 
-// Test 8: Codex config generation
-console.log("Test 8: Codex config generation...");
+// Test 8: Codex proxy config generation
+console.log("Test 8: Codex proxy config generation...");
 try {
   const { buildCodexConfig } = require("../lib/config/codex.js");
-  const config = buildCodexConfig('model = "old"\n[profiles.default]\nmodel = "keep"', 'https://newapi.example.com/v1', 'sk-test');
+  const config = buildCodexConfig('model = "old"\n[profiles.default]\nmodel = "keep"', 'https://cliproxy.fogidc.com/v1', 'FOGACT-TEST-CODE');
   if (
     config.includes('model_provider = "fogact"') &&
-    config.includes('base_url = "https://newapi.example.com/v1"') &&
-    config.includes('experimental_bearer_token = "sk-test"') &&
+    config.includes('base_url = "https://cliproxy.fogidc.com/v1"') &&
+    config.includes('experimental_bearer_token = "FOGACT-TEST-CODE"') &&
     config.includes('[profiles.default]')
   ) {
-    console.log("✓ Codex config generation works correctly");
+    console.log("✓ Codex proxy config generation works correctly");
   } else {
-    console.log("✗ Codex config generation failed");
+    console.log("✗ Codex proxy config generation failed");
     process.exit(1);
   }
 } catch (err) {
-  console.log("✗ Codex config generation test failed:", err.message);
+  console.log("✗ Codex proxy config generation test failed:", err.message);
   process.exit(1);
 }
 
@@ -270,8 +270,10 @@ try {
     data: {
       service: "Codex",
       status: "active",
+      proxy: true,
+      publicBaseUrl: "https://cliproxy.fogidc.com",
       baseUrl: "https://cliproxy.fogidc.com/v1",
-      apiKey: "sk-test",
+      apiKey: "FOGACT-TEST-CODE",
       quota: { total: 1000, used: 0 },
     },
   });
