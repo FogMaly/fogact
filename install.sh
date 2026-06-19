@@ -359,20 +359,11 @@ run_activation() {
 print_next_steps() {
   cat <<EOF
 
-Next commands:
-  fogact --help
-  fogact wizard --code YOUR_CODE --yes
-  fogact activate --service codex --yes
-  fogact-web
+Next command:
+  fogact
 
-For code mode with a remote activation backend:
-  export CLIPROXY_API_BASE="https://your-activator.example.com"
-  fogact wizard --code YOUR_CODE --yes
-
-For direct NewAPI mode:
-  export NEWAPI_BASE_URL="https://newapi.example.com"
-  export NEWAPI_API_KEY="sk-your-key"
-  fogact activate --service codex --yes
+This opens the same interactive activation menu as:
+  npx fogact
 EOF
 }
 
