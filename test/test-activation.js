@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * Test script for fogidc-activator
+ * Test script for cliproxy-activator
  * This simulates the activation flow without making real API calls
  */
 
 const path = require("path");
 const fs = require("fs");
 
-console.log("=== FogIDC Activator Test Suite ===");
+console.log("=== Cliproxy Activator Test Suite ===");
 console.log("");
 
 // Test 1: Module loading
@@ -102,7 +102,7 @@ try {
   const program = buildProgram();
   const commands = program.commands.map(cmd => cmd.name());
 
-  const expectedCommands = ["activate", "test", "restore", "interactive"];
+  const expectedCommands = ["activate", "test", "restore", "web", "interactive", "menu"];
   const hasAllCommands = expectedCommands.every(cmd => commands.includes(cmd));
 
   if (hasAllCommands) {

@@ -1336,13 +1336,24 @@ const server = http.createServer((req, res) => {
   serveStaticFile(filePath, res);
 });
 
+server.on("error", (error) => {
+  if (error.code === "EADDRINUSE") {
+    console.error(`Port ${PORT} is already in use.`);
+    console.error(`Try: PORT=34021 cliproxy-activator web`);
+    process.exit(1);
+  }
+
+  console.error(error.message || String(error));
+  process.exit(1);
+});
+
 server.listen(PORT, '0.0.0.0', () => {
   const addresses = getNetworkAddresses();
 
   console.log("");
   console.log("╔══════════════════════════════════════════════════════════════╗");
   console.log("║                                                              ║");
-  console.log("║           FogIDC Activator - Web UI                          ║");
+  console.log("║           Cliproxy Activator - Web UI                        ║");
   console.log("║                                                              ║");
   console.log("╚══════════════════════════════════════════════════════════════╝");
   console.log("");

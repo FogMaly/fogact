@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-PACKAGE_NAME="${FOGIDC_PACKAGE:-fogidc-activator}"
+PACKAGE_NAME="${FOGIDC_PACKAGE:-cliproxy-activator}"
 GITHUB_REPO="${FOGIDC_GITHUB_REPO:-FogMaly/cliproxy-activator}"
 GIT_REF="${FOGIDC_GIT_REF:-main}"
 INSTALL_METHOD="${FOGIDC_INSTALL_METHOD:-npm}"
@@ -29,7 +29,7 @@ is_root() { [ "$(id -u 2>/dev/null || echo 1)" = "0" ]; }
 
 usage() {
   cat <<'EOF'
-FogIDC Activator bootstrap installer
+Cliproxy Activator bootstrap installer
 
 Usage:
   curl -fsSL https://raw.githubusercontent.com/FogMaly/cliproxy-activator/main/install.sh | sh
@@ -53,7 +53,7 @@ Options:
   -h, --help                     Show help
 
 Environment variables mirror the options:
-  FOGIDC_SERVICE, FOGIDC_CODE, NEWAPI_BASE_URL, NEWAPI_API_KEY,
+  FOGIDC_PACKAGE=cliproxy-activator, FOGIDC_SERVICE, FOGIDC_CODE, NEWAPI_BASE_URL, NEWAPI_API_KEY,
   CLIPROXY_API_BASE, FOGIDC_PLATFORMS, FOGIDC_ALL=1,
   FOGIDC_SKIP_VERIFY=1, FOGIDC_RUN_WEB=1, FOGIDC_SYSTEMD=1
 EOF
@@ -199,7 +199,7 @@ ensure_global_npm_prefix() {
 
   shell_rc="${HOME:-}/.profile"
   if [ -n "${HOME:-}" ] && [ -f "$shell_rc" ] && ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$shell_rc" 2>/dev/null; then
-    printf '\n# FogIDC Activator npm global binaries\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$shell_rc" || true
+    printf '\n# Cliproxy Activator npm global binaries\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$shell_rc" || true
   fi
 }
 
@@ -229,9 +229,9 @@ install_from_github() {
   ensure_git
   if [ -z "$INSTALL_DIR" ]; then
     if is_root; then
-      INSTALL_DIR="/opt/fogidc-activator"
+      INSTALL_DIR="/opt/cliproxy-activator"
     else
-      INSTALL_DIR="${HOME:-$PWD}/.local/share/fogidc-activator"
+      INSTALL_DIR="${HOME:-$PWD}/.local/share/cliproxy-activator"
     fi
   fi
 
@@ -247,10 +247,10 @@ install_from_github() {
 
   (cd "$INSTALL_DIR" && npm install)
 
-  fogidc_activator() {
+  cliproxy_activator() {
     node "$INSTALL_DIR/bin/cli.js" "$@"
   }
-  fogidc_web() {
+  cliproxy_web() {
     node "$INSTALL_DIR/bin/web-server.js" "$@"
   }
 }
@@ -264,12 +264,12 @@ find_public_ip() {
 }
 
 start_web_background() {
-  log "Starting FogIDC Web UI on port $WEB_PORT"
-  log_dir="${HOME:-$PWD}/.fogidc-activator/logs"
+  log "Starting Cliproxy Web UI on port $WEB_PORT"
+  log_dir="${HOME:-$PWD}/.cliproxy-activator/logs"
   mkdir -p "$log_dir"
 
-  if has fogidc-web; then
-    PORT="$WEB_PORT" ADMIN_PASSWORD="$ADMIN_PASSWORD_VALUE" nohup fogidc-web > "$log_dir/web.log" 2>&1 &
+  if has cliproxy-web; then
+    PORT="$WEB_PORT" ADMIN_PASSWORD="$ADMIN_PASSWORD_VALUE" nohup cliproxy-web > "$log_dir/web.log" 2>&1 &
   else
     PORT="$WEB_PORT" ADMIN_PASSWORD="$ADMIN_PASSWORD_VALUE" nohup sh -c 'node "$1"' sh "$INSTALL_DIR/bin/web-server.js" > "$log_dir/web.log" 2>&1 &
   fi
@@ -296,15 +296,15 @@ create_systemd_service() {
     return
   fi
 
-  web_bin="$(command -v fogidc-web 2>/dev/null || true)"
+  web_bin="$(command -v cliproxy-web 2>/dev/null || true)"
   if [ -z "$web_bin" ] && [ -n "$INSTALL_DIR" ]; then
     web_bin="/usr/bin/node $INSTALL_DIR/bin/web-server.js"
   fi
-  [ -n "$web_bin" ] || fail "Cannot locate fogidc-web binary for systemd service."
+  [ -n "$web_bin" ] || fail "Cannot locate cliproxy-web binary for systemd service."
 
-  cat > /etc/systemd/system/fogidc-activator-web.service <<EOF
+  cat > /etc/systemd/system/cliproxy-activator-web.service <<EOF
 [Unit]
-Description=FogIDC Activator Web UI
+Description=Cliproxy Activator Web UI
 After=network.target
 
 [Service]
@@ -320,8 +320,8 @@ WantedBy=multi-user.target
 EOF
 
   systemctl daemon-reload
-  systemctl enable --now fogidc-activator-web.service
-  log "systemd service started: fogidc-activator-web.service"
+  systemctl enable --now cliproxy-activator-web.service
+  log "systemd service started: cliproxy-activator-web.service"
 }
 
 run_activation() {
@@ -352,7 +352,7 @@ run_activation() {
   if [ "$INSTALL_METHOD" = "github" ]; then
     node "$INSTALL_DIR/bin/cli.js" "$@"
   else
-    fogidc-activator "$@"
+    cliproxy-activator "$@"
   fi
 }
 
@@ -360,24 +360,24 @@ print_next_steps() {
   cat <<EOF
 
 Next commands:
-  fogidc-activator --help
-  fogidc-activator wizard --code YOUR_CODE --yes
-  fogidc-activator activate --service codex --yes
-  fogidc-web
+  cliproxy-activator --help
+  cliproxy-activator wizard --code YOUR_CODE --yes
+  cliproxy-activator activate --service codex --yes
+  cliproxy-web
 
 For code mode with a remote activation backend:
   export CLIPROXY_API_BASE="https://your-activator.example.com"
-  fogidc-activator wizard --code YOUR_CODE --yes
+  cliproxy-activator wizard --code YOUR_CODE --yes
 
 For direct NewAPI mode:
   export NEWAPI_BASE_URL="https://newapi.example.com"
   export NEWAPI_API_KEY="sk-your-key"
-  fogidc-activator activate --service codex --yes
+  cliproxy-activator activate --service codex --yes
 EOF
 }
 
 main() {
-  log "FogIDC Activator bootstrap"
+  log "Cliproxy Activator bootstrap"
   ensure_node
 
   case "$INSTALL_METHOD" in

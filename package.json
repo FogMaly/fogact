@@ -1,12 +1,12 @@
 {
-  "name": "fogidc-activator",
-  "version": "1.1.1",
-  "description": "FogIDC multi-platform activator — Activate Codex, Claude Code, OpenCode and OpenClaw",
+  "name": "cliproxy-activator",
+  "version": "1.1.2",
+  "description": "Cliproxy multi-platform activator — Activate Codex, Claude Code, OpenCode and OpenClaw",
   "keywords": [
+    "cliproxy",
     "fogidc",
     "claude",
     "codex",
-    "cliproxy",
     "cli-proxy-api",
     "activator"
   ],
@@ -16,10 +16,10 @@
     "url": "https://github.com/FogMaly/cliproxy-activator/issues"
   },
   "bin": {
-    "fogidc-activator": "bin/cli.js",
-    "fogidc-web": "bin/web-server.js",
     "cliproxy-activator": "bin/cli.js",
-    "cliproxy-web": "bin/web-server.js"
+    "cliproxy-web": "bin/web-server.js",
+    "fogidc-activator": "bin/cli.js",
+    "fogidc-web": "bin/web-server.js"
   },
   "main": "./lib/index.js",
   "files": [
