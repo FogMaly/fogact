@@ -35,7 +35,7 @@ http://YOUR_PUBLIC_IP:34010/
 ## 🔧 启动服务器
 
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm run web
 ```
 
@@ -161,23 +161,23 @@ sudo ufw status
 **PM2**
 ```bash
 npm install -g pm2
-pm2 start bin/web-server.js --name cliproxy-web
+pm2 start bin/web-server.js --name fogact-web
 pm2 save
 pm2 startup
 ```
 
 **systemd**
-创建 `/etc/systemd/system/cliproxy-web.service`:
+创建 `/etc/systemd/system/fogact-web.service`:
 ```ini
 [Unit]
-Description=CLIProxy Activator Web UI
+Description=FogAct Web UI
 After=network.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/cliproxy-activator
-ExecStart=/usr/bin/node /opt/cliproxy-activator/bin/web-server.js
+WorkingDirectory=/opt/fogact
+ExecStart=/usr/bin/node /opt/fogact/bin/web-server.js
 Restart=on-failure
 
 [Install]
@@ -187,8 +187,8 @@ WantedBy=multi-user.target
 启动服务：
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable cliproxy-web
-sudo systemctl start cliproxy-web
+sudo systemctl enable fogact-web
+sudo systemctl start fogact-web
 ```
 
 ### 2. 使用 HTTPS

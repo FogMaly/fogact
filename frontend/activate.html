@@ -3,13 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>激活 CDK | FogIDC Activator</title>
-    <meta name="description" content="输入 FogIDC Activator 激活码，绑定用户并开通服务。" />
+    <title>激活 CDK | FogAct</title>
+    <meta name="description" content="输入 FogAct 激活码，完成服务绑定并查看额度与有效期。" />
+    <script>
+      ;(function () {
+        var theme = localStorage.getItem('fogact_theme') || localStorage.getItem('admin_theme') || 'system';
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    <link rel="stylesheet" href="/assets/market-ui.css?v=20260616-upstream2" />
+    <link rel="stylesheet" href="/assets/market-ui.css?v=20260619-theme1" />
   </head>
   <body class="market-page">
     <span class="market-mouse-light" aria-hidden="true"></span>
@@ -19,8 +28,8 @@
         <a class="market-brand" href="/">
           <span class="market-logo">F</span>
           <span>
-            <span class="market-brand-title">FogIDC Activator</span>
-            <span class="market-brand-subtitle">Redeem center</span>
+            <span class="market-brand-title">FogAct</span>
+            <span class="market-brand-subtitle">输入激活码完成服务绑定</span>
           </span>
         </a>
 
@@ -29,14 +38,20 @@
           <a href="/admin/">管理后台</a>
           <a href="/">首页</a>
         </nav>
+
+        <div class="market-actions">
+          <button type="button" class="market-button market-theme-toggle" data-theme-toggle aria-label="切换暗黑模式">
+            <span class="material-symbols-outlined" data-theme-icon>light_mode</span>
+          </button>
+        </div>
       </header>
 
       <main class="market-activation">
         <section class="market-activation-copy" aria-labelledby="activation-title">
-          <div class="market-kicker"><span class="market-kicker-dot"></span> fast activation flow</div>
+          <div class="market-kicker"><span class="market-kicker-dot"></span> 快速激活流程</div>
           <h1 id="activation-title" class="market-title">输入 CDK，立即开通 <span>CLI 服务</span></h1>
           <p class="market-copy">
-            保留原有激活接口，升级为更清晰的产品化表单。输入激活码后会自动校验额度、服务类型和有效期。
+            输入 CDK 后即可绑定服务；用户名和邮箱用于后台识别，可按需填写。
           </p>
 
           <div class="market-flow" aria-label="激活流程">
@@ -50,7 +65,7 @@
             </div>
             <div class="market-flow-step">
               <span class="market-flow-index">3</span>
-              <span><strong>点火开通</strong><span>写入服务、额度和有效期</span></span>
+              <span><strong>开通服务</strong><span>写入服务、额度和有效期</span></span>
             </div>
           </div>
 
@@ -61,7 +76,7 @@
                 <p class="market-mini-title">安全校验</p>
                 <p class="market-mini-copy">激活过程通过本地 API 完成，失败会返回明确提示。</p>
               </div>
-              <span class="market-status-pill">Secure</span>
+              <span class="market-status-pill">安全</span>
             </div>
             <div class="market-mini-card">
               <span class="market-icon material-symbols-outlined">rocket_launch</span>
@@ -69,7 +84,7 @@
                 <p class="market-mini-title">多服务支持</p>
                 <p class="market-mini-copy">适配 Codex、Claude Code、OpenCode 与 OpenClaw 场景。</p>
               </div>
-              <span class="market-status-pill">Multi</span>
+              <span class="market-status-pill">多平台</span>
             </div>
           </div>
         </section>
@@ -84,22 +99,22 @@
             <div class="market-form-header">
               <span class="market-icon material-symbols-outlined">vpn_key</span>
               <h1>激活 CDK</h1>
-              <p>填写激活码，用户名和邮箱可选。成功后会展示服务类型、额度和过期时间。</p>
+              <p>输入 CDK 后即可绑定服务；用户名和邮箱用于后台识别，可按需填写。</p>
             </div>
 
             <form id="activate-form" class="market-form">
               <div class="market-field">
-                <label for="activation-code">激活码 <span>Required</span></label>
+                <label for="activation-code">激活码 <span>必填</span></label>
                 <input type="text" id="activation-code" placeholder="例如 XXXX-XXXX-XXXX-XXXX" required />
               </div>
 
               <div class="market-field">
-                <label for="username">用户名 <span>Optional</span></label>
+                <label for="username">用户名 <span>选填</span></label>
                 <input type="text" id="username" placeholder="用于后台识别的用户名" />
               </div>
 
               <div class="market-field">
-                <label for="email">邮箱 <span>Optional</span></label>
+                <label for="email">邮箱 <span>选填</span></label>
                 <input type="email" id="email" placeholder="name@example.com" />
               </div>
 
@@ -107,7 +122,7 @@
 
               <button type="submit" id="submit-btn" class="market-button market-button-primary" style="width: 100%; min-height: 50px;">
                 <span class="material-symbols-outlined">bolt</span>
-                激活服务
+                立即激活
               </button>
             </form>
 
@@ -127,7 +142,7 @@
               </div>
 
               <h2>激活成功</h2>
-              <p>您的激活码已绑定，下面是本次开通详情。</p>
+              <p>服务已开通，以下是本次激活详情。</p>
 
               <div class="market-result-list">
                 <div class="market-result-row"><span>激活码</span><span id="result-code"></span></div>
@@ -175,6 +190,8 @@
         });
       });
 
+      initThemeToggle();
+
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -210,9 +227,31 @@
           showError('网络错误，请稍后重试');
         } finally {
           submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span class="material-symbols-outlined">bolt</span> 激活服务';
+          submitBtn.innerHTML = '<span class="material-symbols-outlined">bolt</span> 立即激活';
         }
       });
+
+      function initThemeToggle() {
+        const button = document.querySelector('[data-theme-toggle]');
+        const icon = document.querySelector('[data-theme-icon]');
+        if (!button || !icon) return;
+
+        const sync = () => {
+          const isDark = document.documentElement.classList.contains('dark');
+          icon.textContent = isDark ? 'dark_mode' : 'light_mode';
+          button.setAttribute('aria-label', isDark ? '切换浅色模式' : '切换暗黑模式');
+        };
+
+        button.addEventListener('click', () => {
+          const isDark = !document.documentElement.classList.contains('dark');
+          document.documentElement.classList.toggle('dark', isDark);
+          document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+          localStorage.setItem('fogact_theme', isDark ? 'dark' : 'light');
+          sync();
+        });
+
+        sync();
+      }
 
       function showError(message) {
         errorMessage.textContent = message;

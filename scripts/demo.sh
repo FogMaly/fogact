@@ -3,11 +3,11 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# FogIDC Activator - Demo Script
+# FogAct - Demo Script
 # This script demonstrates the main features of the activator
 
 echo "=================================="
-echo "FogIDC Activator - Demo"
+echo "FogAct - Demo"
 echo "=================================="
 echo ""
 
@@ -27,11 +27,11 @@ echo ""
 
 echo "2. Testing node connectivity..."
 echo "-----------------------------------"
-echo "Note: This will attempt to connect to yunyi.cfd"
+echo "Note: This will attempt to connect to localhost:34020"
 echo "Press Ctrl+C to skip, or Enter to continue..."
 read -r
 
-node bin/cli.js test || echo "Node testing requires network access to yunyi.cfd"
+node bin/cli.js test || echo "Node testing requires network access to localhost:34020"
 echo ""
 
 echo "3. Showing activation command help..."

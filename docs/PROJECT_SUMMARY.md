@@ -1,13 +1,13 @@
-# CLIProxy Activator - 项目总结
+# FogAct - 项目总结
 
 ## 已完成的工作
 
-我已经成功实现了 `cliproxy-activator` 的核心功能，将其从一个 CLI 脚手架升级为功能完整的激活工具。
+我已经成功实现了 `fogact` 的核心功能，将其从一个 CLI 脚手架升级为功能完整的激活工具。
 
 ### 1. 核心服务模块
 
-**API 服务** (`lib/services/cliproxy-api.js`)
-- 与 https://yunyi.cfd 集成
+**API 服务** (`lib/services/fogact-api.js`)
+- 与 https://localhost:34020 集成
 - 激活码验证功能
 - 节点列表获取
 - 节点健康检查
@@ -99,19 +99,19 @@
 
 ```bash
 # 交互式模式
-cliproxy-activator
+fogact
 
 # 激活 Codex
-cliproxy-activator activate --service codex --code K1DHPY3P-4B2W-F1A4-DC4P-Y74TCQZXPNYT
+fogact activate --service codex --code K1DHPY3P-4B2W-F1A4-DC4P-Y74TCQZXPNYT
 
 # 激活 Claude
-cliproxy-activator activate --service claude --code N6P3BDX4-VCGH-T7MT-EX6J-3SYHEC8RXYX7
+fogact activate --service claude --code N6P3BDX4-VCGH-T7MT-EX6J-3SYHEC8RXYX7
 
 # 测试节点
-cliproxy-activator test
+fogact test
 
 # 恢复备份
-cliproxy-activator restore
+fogact restore
 ```
 
 ### Web UI 使用
@@ -126,7 +126,7 @@ node bin/web-server.js
 ## 项目结构
 
 ```
-cliproxy-activator/
+fogact/
 ├── bin/
 │   ├── cli.js              # CLI 入口
 │   └── web-server.js       # Web 服务器
@@ -137,7 +137,7 @@ cliproxy-activator/
 │   │   ├── test.js
 │   │   └── restore.js
 │   ├── services/           # 服务层
-│   │   ├── cliproxy-api.js
+│   │   ├── fogact-api.js
 │   │   ├── node-service.js
 │   │   └── backup-service.js
 │   └── config/             # 配置管理

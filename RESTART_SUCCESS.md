@@ -69,7 +69,7 @@
 
 ## 日志位置
 
-- **服务日志**: `/opt/cliproxy-activator/logs/web-server.log`
+- **服务日志**: `/opt/fogact/logs/web-server.log`
 - **查看日志**: `tail -f logs/web-server.log`
 
 ## 停止服务
@@ -88,7 +88,7 @@ pkill -f web-server.js
 ## 重启服务
 
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 node bin/web-server.js > logs/web-server.log 2>&1 &
 ```
 

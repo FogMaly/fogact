@@ -1,12 +1,12 @@
-# CLIProxy Activator - 前端部署完成 ✅
+# FogAct - 前端部署完成 ✅
 
 ## 📦 已完成的工作
 
 ### 1. 前端结构迁移
-- ✅ 从 `/opt/fog-activator/frontend/` 完整迁移到 `/opt/cliproxy-activator/frontend/`
+- ✅ 从 `/opt/fog-activator/frontend/` 完整迁移到 `/opt/fogact/frontend/`
 - ✅ 根跳转页创建（`/` → `/user/`）
 - ✅ 用户监控前端（Vue.js SPA，606KB 资源）
-- ✅ 品牌更新（"云驿" → "CLIProxy"）
+- ✅ 品牌更新（"FogAct" → "FogAct"）
 
 ### 2. Web 服务器升级
 - ✅ 完整静态文件服务支持

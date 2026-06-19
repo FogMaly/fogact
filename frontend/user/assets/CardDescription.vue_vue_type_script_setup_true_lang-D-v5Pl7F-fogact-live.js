@@ -1,0 +1,1 @@
+import{Q as a}from"./index-fogact-live.js";import{j as n,d as c,x as p,y as l,C as d,u as m,G as u}from"./chart-vendor-CULJE59K.js";const i=n({__name:"CardDescription",props:{class:{}},setup(o){const e=o,r=c(()=>{const{class:s,...t}=e;return t});return(s,t)=>(l(),p("p",d(r.value,{class:m(a)("text-sm text-muted-foreground",e.class)}),[u(s.$slots,"default")],16))}});export{i as _};

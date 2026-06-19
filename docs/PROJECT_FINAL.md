@@ -1,4 +1,4 @@
-# CLIProxy Activator - 最终项目总结
+# FogAct - 最终项目总结
 
 ## 🎉 项目完成状态：100%
 
@@ -11,7 +11,7 @@
 ## 📦 完整功能清单
 
 ### ✅ 核心激活系统
-- [x] 激活码验证（yunyi.cfd API 集成）
+- [x] 激活码验证（localhost:34020 API 集成）
 - [x] Claude Code 支持
 - [x] Codex 支持
 - [x] 自动节点测试
@@ -28,7 +28,7 @@
 - [x] 完整帮助文档
 
 ### ✅ Web 图形界面（全新设计）
-- [x] **参考 yunyi.cfd 设计风格** ⭐
+- [x] **参考 localhost:34020 设计风格** ⭐
 - [x] **深色/浅色主题切换** ⭐
 - [x] 现代化卡片布局
 - [x] 响应式设计（448行）
@@ -60,7 +60,7 @@
 ## 🎨 前端设计亮点
 
 ### 设计风格
-参考 https://yunyi.cfd/user/ 的现代化设计：
+参考 https://localhost:34020/user/ 的现代化设计：
 
 **主题系统**
 - 深色模式：`hsl(240, 10%, 3.9%)` 背景
@@ -121,7 +121,7 @@
 ## 📂 项目结构
 
 ```
-cliproxy-activator/
+fogact/
 ├── bin/
 │   ├── cli.js                    # CLI 入口
 │   └── web-server.js             # Web 服务器（支持外网）
@@ -132,14 +132,14 @@ cliproxy-activator/
 │   │   ├── test.js               # 测试命令
 │   │   └── restore.js            # 恢复命令
 │   ├── services/                 # 服务层
-│   │   ├── cliproxy-api.js       # API 集成
+│   │   ├── fogact-api.js       # API 集成
 │   │   ├── node-service.js       # 节点管理
 │   │   └── backup-service.js     # 备份管理
 │   └── config/                   # 配置管理
 │       ├── claude.js             # Claude 配置
 │       └── codex.js              # Codex 配置
 ├── frontend/
-│   └── index.html                # Web UI（448行，yunyi.cfd 风格）
+│   └── index.html                # Web UI（448行，localhost:34020 风格）
 ├── test/
 │   └── test-activation.js        # 测试套件
 ├── 文档/（14个）
@@ -250,7 +250,7 @@ npm run web
 CLI 和 Web UI 满足不同使用场景
 
 ### 3. 现代化设计
-参考 yunyi.cfd 的设计风格，支持深色/浅色主题
+参考 localhost:34020 的设计风格，支持深色/浅色主题
 
 ### 4. 外网访问
 Web UI 支持从任何设备访问
@@ -290,7 +290,7 @@ sudo firewall-cmd --reload
 1. **使用进程管理器（PM2）**
 ```bash
 npm install -g pm2
-pm2 start bin/web-server.js --name cliproxy-web
+pm2 start bin/web-server.js --name fogact-web
 pm2 save
 pm2 startup
 ```
@@ -343,7 +343,7 @@ server {
 - [x] 所有文档已完成
 - [x] CLI 工具可用
 - [x] Web UI 可用
-- [x] **前端界面已重新设计（yunyi.cfd 风格）** ⭐
+- [x] **前端界面已重新设计（localhost:34020 风格）** ⭐
 - [x] **深色/浅色主题切换** ⭐
 - [x] 外网访问已配置
 - [x] CORS 已启用
@@ -360,16 +360,16 @@ server {
 **项目状态**: 生产就绪 ✅
 **交付日期**: 2026-04-05
 **项目版本**: v1.0.0
-**项目位置**: /opt/cliproxy-activator
+**项目位置**: /opt/fogact
 
-**所有功能已完成，所有文档已齐全，前端界面已重新设计为 yunyi.cfd 风格，项目可立即投入使用！**
+**所有功能已完成，所有文档已齐全，前端界面已重新设计为 localhost:34020 风格，项目可立即投入使用！**
 
 ---
 
 ## 🚀 立即开始
 
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm run web
 ```
 
@@ -377,4 +377,4 @@ npm run web
 
 ---
 
-感谢使用 CLIProxy Activator！
+感谢使用 FogAct！

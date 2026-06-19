@@ -4,7 +4,7 @@
 
 ### 启动服务
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 node bin/web-server.js > logs/web-server.log 2>&1 &
 ```
 
@@ -113,7 +113,7 @@ curl "http://localhost:34010/api/code-center/expiring-soon?days=7" \
 ## 🗂️ 项目结构
 
 ```
-/opt/cliproxy-activator/
+/opt/fogact/
 ├── bin/
 │   └── web-server.js          # Web 服务器 (842 行)
 ├── lib/

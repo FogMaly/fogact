@@ -2,7 +2,7 @@
 
 ## 问题分析
 
-user 前端是从 fog-activator 复制的 Vue.js 应用，它的 API 地址硬编码指向 `https://yunyi.cfd`。
+user 前端是从 fog-activator 复制的 Vue.js 应用，它的 API 地址硬编码指向 `https://localhost:34020`。
 
 ## 解决方案
 
@@ -50,7 +50,7 @@ GET /api/user/info
 
 如果前端调用外部 API，可以通过代理：
 ```
-/proxy/api/verify -> https://yunyi.cfd/api/verify
+/proxy/api/verify -> https://localhost:34020/api/verify
 ```
 
 ### 方案 3: 修改前端 JS 文件
@@ -59,7 +59,7 @@ GET /api/user/info
 
 ```bash
 # 查找并替换 API 地址
-sed -i 's|https://yunyi.cfd|http://154.40.43.33:34010|g' /opt/cliproxy-activator/frontend/user/assets/index-Da98HOxL.js
+sed -i 's|https://localhost:34020|http://154.40.43.33:34010|g' /opt/fogact/frontend/user/assets/index-Da98HOxL.js
 ```
 
 ## 测试步骤
@@ -83,7 +83,7 @@ sed -i 's|https://yunyi.cfd|http://154.40.43.33:34010|g' /opt/cliproxy-activator
 
 ## 如果前端调用外部 API
 
-前端可能硬编码了 `https://yunyi.cfd` 作为 API 地址。需要：
+前端可能硬编码了 `https://localhost:34020` 作为 API 地址。需要：
 
 1. 查看浏览器 Network 标签，确认实际请求的 URL
 2. 如果是外部 URL，我们需要修改前端 JS 文件或添加反向代理

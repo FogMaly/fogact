@@ -109,7 +109,7 @@ curl "http://localhost:34010/api/code-center/filter?category=高级版&service=C
 ## 项目结构
 
 ```
-/opt/cliproxy-activator/
+/opt/fogact/
 ├── bin/
 │   └── web-server.js          # Web 服务器（已扩展 API）
 ├── lib/

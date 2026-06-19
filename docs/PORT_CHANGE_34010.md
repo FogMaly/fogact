@@ -102,7 +102,7 @@ curl http://localhost:34010/
 
 ## 📌 重要提示
 
-1. **端口 34010 现在是专用端口**，用于 CLIProxy Activator Web UI
+1. **端口 34010 现在是专用端口**，用于 FogAct Web UI
 2. 所有文档已更新为新端口
 3. Web 服务器已重启并运行在新端口
 4. 如果使用了反向代理（Nginx/Apache），请更新配置
@@ -113,7 +113,7 @@ curl http://localhost:34010/
 ## 🚀 快速启动
 
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm run web
 ```
 

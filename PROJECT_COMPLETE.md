@@ -2,7 +2,7 @@
 
 ## 项目概览
 
-**项目名称**: CLIProxy Activator - 代码中心后端迭代  
+**项目名称**: FogAct - 代码中心后端迭代  
 **版本**: 1.1.0  
 **完成日期**: 2026-04-06  
 **状态**: ✅ **完成并运行中**
@@ -221,7 +221,7 @@
 
 ### 启动服务
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 node bin/web-server.js > logs/web-server.log 2>&1 &
 ```
 

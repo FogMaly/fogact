@@ -14,7 +14,7 @@ console.log("");
 // Test 1: Module loading
 console.log("Test 1: Loading modules...");
 try {
-  const { buildProgram, runCli } = require("../lib/index.js");
+  const { buildProgram, runCli, applyMenuInput } = require("../lib/index.js");
   const { verifyActivationCode } = require("../lib/services/fogact-api.js");
   const { testNodes, selectBestNode } = require("../lib/services/node-service.js");
   const { createBackup, listBackups } = require("../lib/services/backup-service.js");
@@ -108,9 +108,16 @@ try {
   if (hasAllCommands) {
     console.log("✓ All CLI commands registered:", commands.join(", "));
     const activateCommand = program.commands.find(cmd => cmd.name() === "activate");
-    const optionNames = activateCommand.options.map(option => option.long);
-    if (!optionNames.includes("--api-key") || !optionNames.includes("--yes")) {
-      console.log("✗ Missing NewAPI activation options");
+    const wizardCommand = program.commands.find(cmd => cmd.name() === "wizard");
+    const activateOptions = activateCommand.options.map(option => option.long);
+    const wizardOptions = wizardCommand.options.map(option => option.long);
+    if (!activateOptions.includes("--code") || !activateOptions.includes("--yes")) {
+      console.log("✗ Missing activation code options");
+      process.exit(1);
+    }
+    const blockedUserOptions = ["--api-key", "--upstream-config", "--skip-verify"];
+    if (blockedUserOptions.some(option => activateOptions.includes(option) || wizardOptions.includes(option))) {
+      console.log("✗ User CLI still exposes upstream credential options");
       process.exit(1);
     }
     if (!isNewerVersion("1.1.7", "1.1.6") || isNewerVersion("1.1.6", "1.1.6") || isNewerVersion("1.1.5", "1.1.6")) {
@@ -128,8 +135,46 @@ try {
 
 console.log("");
 
-// Test 6: Frontend files
-console.log("Test 6: Frontend files...");
+// Test 6: Interactive menu key parsing
+console.log("Test 6: Interactive menu key parsing...");
+try {
+  const {
+    applyMenuInput,
+    enterFixedMenuScreen,
+    leaveFixedMenuScreen,
+    shouldUseFixedMenuScreen,
+  } = require("../lib/index.js");
+  const repeated = applyMenuInput("\u001b[B\u001b[B\u001b[A", 0, 4);
+  const wrapped = applyMenuInput("\u001b[A", 0, 4);
+  const numberSelect = applyMenuInput("3", 0, 4);
+  const enter = applyMenuInput("\r", 2, 4);
+  const writes = [];
+  const fakeTty = { isTTY: true, write: (value) => writes.push(value) };
+  enterFixedMenuScreen(fakeTty);
+  leaveFixedMenuScreen(fakeTty);
+
+  if (
+    repeated.cursor !== 1 ||
+    wrapped.cursor !== 3 ||
+    numberSelect.cursor !== 2 ||
+    numberSelect.action !== "submit" ||
+    enter.action !== "submit" ||
+    !shouldUseFixedMenuScreen({ TERM: "xterm-256color" }, fakeTty) ||
+    shouldUseFixedMenuScreen({ TERM: "dumb" }, fakeTty) ||
+    !writes[0].includes("\u001b[?1049h") ||
+    !writes[1].includes("\u001b[?1049l")
+  ) {
+    console.log("✗ Interactive menu key parsing failed");
+    process.exit(1);
+  }
+  console.log("✓ Interactive menu handles repeated arrows and shortcuts");
+} catch (err) {
+  console.log("✗ Interactive menu key parsing test failed:", err.message);
+  process.exit(1);
+}
+
+// Test 7: Frontend files
+console.log("Test 7: Frontend files...");
 try {
   const frontendPath = path.join(__dirname, "..", "frontend", "index.html");
 
@@ -157,8 +202,8 @@ try {
 
 console.log("");
 
-// Test 7: NewAPI config loading
-console.log("Test 7: NewAPI config loading...");
+// Test 8: NewAPI config loading
+console.log("Test 8: NewAPI config loading...");
 try {
   const { loadUpstreamConfig } = require("../lib/config/upstream.js");
   const config = loadUpstreamConfig({
@@ -177,8 +222,8 @@ try {
 
 console.log("");
 
-// Test 8: Codex proxy config generation
-console.log("Test 8: Codex proxy config generation...");
+// Test 9: Codex proxy config generation
+console.log("Test 9: Codex proxy config generation...");
 try {
   const { buildCodexConfig } = require("../lib/config/codex.js");
   const config = buildCodexConfig('model = "old"\n[profiles.default]\nmodel = "keep"', 'https://cliproxy.fogidc.com/v1', 'FOGACT-TEST-CODE');
@@ -200,8 +245,8 @@ try {
 
 console.log("");
 
-// Test 9: Platform detection
-console.log("Test 9: Platform detection...");
+// Test 10: Platform detection
+console.log("Test 10: Platform detection...");
 try {
   const { detectPlatforms } = require("../lib/platforms");
   const claudePlatforms = detectPlatforms("claude");
@@ -223,8 +268,8 @@ try {
 
 console.log("");
 
-// Test 10: Activation entitlement filtering
-console.log("Test 10: Activation entitlement filtering...");
+// Test 11: Activation entitlement filtering
+console.log("Test 11: Activation entitlement filtering...");
 try {
   const { detectPlatforms } = require("../lib/platforms");
   const { isPlatformAllowed, normalizeEntitlement } = require("../lib/services/activation-orchestrator.js");
@@ -260,7 +305,7 @@ try {
 console.log("");
 
 // Test 11: Reusable activation code response handling
-console.log("Test 11: Reusable activation semantics...");
+console.log("Test 12: Reusable activation semantics...");
 try {
   const { normalizeEntitlement } = require("../lib/services/activation-orchestrator.js");
 
@@ -285,6 +330,40 @@ try {
   console.log("✓ Active activation code can be reused for configuration");
 } catch (err) {
   console.log("✗ Reusable activation semantic test failed:", err.message);
+  process.exit(1);
+}
+
+// Test 12: Proxy entitlement does not expose upstream configuration
+console.log("Test 13: Proxy entitlement isolation...");
+try {
+  const { normalizeEntitlement } = require("../lib/services/activation-orchestrator.js");
+
+  const entitlement = normalizeEntitlement({
+    success: true,
+    valid: true,
+    data: {
+      service: "Codex",
+      proxy: true,
+      publicBaseUrl: "https://cliproxy.fogidc.com",
+      baseUrl: "https://cliproxy.fogidc.com/v1",
+      apiKey: "FOGACT-TEST-CODE",
+    },
+  });
+  const serialized = JSON.stringify(entitlement);
+
+  if (
+    !serialized.includes("https://cliproxy.fogidc.com/v1") ||
+    !serialized.includes("FOGACT-TEST-CODE") ||
+    serialized.includes("upstream.internal.invalid") ||
+    serialized.includes("newapi.example.com") ||
+    serialized.includes("PRIVATE_UPSTREAM_KEY")
+  ) {
+    console.log("✗ Proxy entitlement leaked or missed critical activation data");
+    process.exit(1);
+  }
+  console.log("✓ Proxy entitlement only carries FogAct endpoint and activation code");
+} catch (err) {
+  console.log("✗ Proxy entitlement isolation test failed:", err.message);
   process.exit(1);
 }
 

@@ -2,7 +2,7 @@
 
 ## 📋 项目信息
 
-- **项目名称**: CLIProxy Activator - 代码中心后端迭代
+- **项目名称**: FogAct - 代码中心后端迭代
 - **版本**: 1.1.0
 - **交付日期**: 2026-04-06
 - **迭代内容**: 根据 `stitch_code_center_claude (1).zip` 完成后端功能扩展
@@ -138,7 +138,7 @@
 
 1. **进入项目目录**
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 ```
 
 2. **安装依赖**（如果需要）
@@ -181,13 +181,13 @@ curl -X POST http://localhost:34010/api/code-center/batch-create \
 ## 📖 使用指南
 
 ### 快速开始
-详见: `/opt/cliproxy-activator/docs/CODE_CENTER_QUICKSTART.md`
+详见: `/opt/fogact/docs/CODE_CENTER_QUICKSTART.md`
 
 ### API 参考
-详见: `/opt/cliproxy-activator/docs/API_REFERENCE.md`
+详见: `/opt/fogact/docs/API_REFERENCE.md`
 
 ### 设计系统
-详见: `/opt/cliproxy-activator/docs/DESIGN_SYSTEM.md`
+详见: `/opt/fogact/docs/DESIGN_SYSTEM.md`
 
 ---
 
@@ -269,7 +269,7 @@ curl -X POST http://localhost:34010/api/code-center/batch-create \
 ## 📞 技术支持
 
 ### 文档位置
-所有文档位于 `/opt/cliproxy-activator/docs/` 目录
+所有文档位于 `/opt/fogact/docs/` 目录
 
 ### 关键文档
 - 快速启动: `CODE_CENTER_QUICKSTART.md`

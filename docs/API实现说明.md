@@ -1,11 +1,11 @@
-# CLIProxy Activator - 后端 API 实现完成
+# FogAct - 后端 API 实现完成
 
 ## ✅ 已完成的功能
 
 ### 1. 数据库模块
-**文件**: `/opt/cliproxy-activator/lib/services/database.js`
+**文件**: `/opt/fogact/lib/services/database.js`
 
-- ✅ JSON 文件数据库（存储在 `/opt/cliproxy-activator/data/`）
+- ✅ JSON 文件数据库（存储在 `/opt/fogact/data/`）
 - ✅ 用户数据库操作（增删改查、搜索、筛选）
 - ✅ 激活码数据库操作（增删改查、搜索、筛选）
 - ✅ 自动生成激活码（格式：XXXX-XXXX-XXXX-XXXX）
@@ -56,7 +56,7 @@
 ```
 
 ### 5. 前端集成
-**文件**: `/opt/cliproxy-activator/frontend/admin-dashboard.html`
+**文件**: `/opt/fogact/frontend/admin-dashboard.html`
 
 - ✅ 动态加载统计数据
 - ✅ 动态加载用户列表
@@ -142,11 +142,11 @@ node bin/web-server.js
 ## 📁 文件结构
 
 ```
-/opt/cliproxy-activator/
+/opt/fogact/
 ├── lib/
 │   └── services/
 │       ├── database.js          # 新增：数据库模块
-│       ├── cliproxy-api.js
+│       ├── fogact-api.js
 │       ├── node-service.js
 │       └── backup-service.js
 ├── bin/

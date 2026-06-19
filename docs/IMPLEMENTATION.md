@@ -1,10 +1,10 @@
-# CLIProxy Activator 实施文档
+# FogAct 实施文档
 
 ## 已完成功能
 
 ### 核心模块
 
-1. **API 服务层** (`lib/services/cliproxy-api.js`)
+1. **API 服务层** (`lib/services/fogact-api.js`)
    - 激活码验证
    - 节点列表获取
    - 节点健康检查
@@ -61,26 +61,26 @@
 
 ```bash
 # 交互式模式
-cliproxy-activator
+fogact
 
 # 直接激活 Codex
-cliproxy-activator activate --service codex --code K1DHPY3P-4B2W-F1A4-DC4P-Y74TCQZXPNYT
+fogact activate --service codex --code K1DHPY3P-4B2W-F1A4-DC4P-Y74TCQZXPNYT
 
 # 直接激活 Claude
-cliproxy-activator activate --service claude --code N6P3BDX4-VCGH-T7MT-EX6J-3SYHEC8RXYX7
+fogact activate --service claude --code N6P3BDX4-VCGH-T7MT-EX6J-3SYHEC8RXYX7
 
 # 测试节点
-cliproxy-activator test
+fogact test
 
 # 恢复备份
-cliproxy-activator restore --service claude
+fogact restore --service claude
 ```
 
 ### Web UI 使用
 
 ```bash
 # 启动 Web 服务器
-cliproxy-web
+fogact-web
 
 # 然后在浏览器打开 http://localhost:3000
 ```
@@ -89,11 +89,11 @@ cliproxy-web
 
 - Claude Code: `~/.claude/config.json`
 - Codex: `~/.codex/config.json`
-- 备份目录: `~/.cliproxy-activator/backups/`
+- 备份目录: `~/.fogact/backups/`
 
 ## API 集成
 
-工具对接 https://yunyi.cfd 的以下接口：
+工具对接 https://localhost:34020 的以下接口：
 
 - `POST /api/verify` - 验证激活码
 - `GET /api/nodes?service={service}` - 获取节点列表

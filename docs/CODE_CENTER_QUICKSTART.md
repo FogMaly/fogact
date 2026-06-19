@@ -29,7 +29,7 @@
 ## 🚀 启动服务
 
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm run web
 ```
 
@@ -99,11 +99,11 @@ Content-Type: application/json
 - 高密度表格优化
 - Glassmorphism 效果
 
-详见: `/opt/cliproxy-activator/docs/DESIGN_SYSTEM.md`
+详见: `/opt/fogact/docs/DESIGN_SYSTEM.md`
 
 ## 📝 完整文档
 
-详细的迭代报告: `/opt/cliproxy-activator/docs/CODE_CENTER_ITERATION.md`
+详细的迭代报告: `/opt/fogact/docs/CODE_CENTER_ITERATION.md`
 
 ## ✨ 核心功能
 

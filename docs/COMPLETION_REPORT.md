@@ -1,13 +1,13 @@
-# CLIProxy Activator - 完成报告
+# FogAct - 完成报告
 
 ## 项目状态：✅ 完成
 
-我已经成功将 `cliproxy-activator` 从一个 CLI 脚手架升级为功能完整的激活工具。
+我已经成功将 `fogact` 从一个 CLI 脚手架升级为功能完整的激活工具。
 
 ## 核心功能实现
 
 ### ✅ 1. 激活码验证系统
-- 集成 https://yunyi.cfd API
+- 集成 https://localhost:34020 API
 - 支持 Codex 和 Claude 两种服务
 - 实时验证激活码有效性
 - 提供的测试激活码：
@@ -28,7 +28,7 @@
 
 ### ✅ 4. 备份恢复系统
 - 激活前自动备份
-- 备份目录：`~/.cliproxy-activator/backups/`
+- 备份目录：`~/.fogact/backups/`
 - 支持列出、恢复、清理备份
 - 按服务类型分类管理
 
@@ -53,7 +53,7 @@
 ## 项目结构
 
 ```
-cliproxy-activator/
+fogact/
 ├── bin/
 │   ├── cli.js              # CLI 入口
 │   └── web-server.js       # Web 服务器
@@ -64,7 +64,7 @@ cliproxy-activator/
 │   │   ├── test.js         # 测试命令
 │   │   └── restore.js      # 恢复命令
 │   ├── services/           # 服务层
-│   │   ├── cliproxy-api.js # API 集成
+│   │   ├── fogact-api.js # API 集成
 │   │   ├── node-service.js # 节点管理
 │   │   └── backup-service.js # 备份管理
 │   └── config/             # 配置管理
@@ -134,9 +134,9 @@ node bin/web-server.js             # 启动 Web UI
 - HTML 文件：2 个
 - Shell 脚本：1 个
 
-## 与 yunyi-activator 对比
+## 与 fogact 对比
 
-| 功能 | yunyi-activator | cliproxy-activator | 状态 |
+| 功能 | fogact | fogact | 状态 |
 |------|----------------|-------------------|------|
 | 激活码验证 | ✓ | ✓ | ✅ 完成 |
 | 节点测试 | ✓ | ✓ | ✅ 完成 |
@@ -172,7 +172,7 @@ node bin/web-server.js             # 启动 Web UI
 
 ## API 集成
 
-工具已成功集成 https://yunyi.cfd 的以下端点：
+工具已成功集成 https://localhost:34020 的以下端点：
 - `POST /api/verify` - 验证激活码
 - `GET /api/nodes?service={service}` - 获取节点列表
 

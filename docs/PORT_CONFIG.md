@@ -84,7 +84,7 @@ PORT=8888 npm run web
 
 启动后会显示：
 ```
-CLIProxy Activator Web UI
+FogAct Web UI
 =========================
 
 Server running at http://localhost:端口号/

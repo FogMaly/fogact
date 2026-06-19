@@ -1,9 +1,9 @@
-# CLIProxy Activator - 快速开始指南
+# FogAct - 快速开始指南
 
 ## 安装
 
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm install
 ```
 
@@ -68,7 +68,7 @@ Web 界面提供：
 
 当你运行激活命令时，工具会自动：
 
-1. **验证激活码** - 向 yunyi.cfd 验证激活码是否有效
+1. **验证激活码** - 向 localhost:34020 验证激活码是否有效
 2. **获取节点列表** - 获取所有可用的代理节点
 3. **测试节点** - 测试每个节点的延迟和可用性
 4. **选择最优节点** - 自动选择延迟最低的节点
@@ -92,7 +92,7 @@ Web 界面提供：
 ## 备份管理
 
 ### 备份位置
-所有备份保存在: `~/.cliproxy-activator/backups/`
+所有备份保存在: `~/.fogact/backups/`
 
 ### 备份命名
 格式: `{service}-{timestamp}.json`
@@ -163,8 +163,8 @@ N6P3BDX4-VCGH-T7MT-EX6J-3SYHEC8RXYX7
 
 工具与以下 API 端点集成：
 
-- `POST https://yunyi.cfd/api/verify` - 验证激活码
-- `GET https://yunyi.cfd/api/nodes?service={service}` - 获取节点列表
+- `POST https://localhost:34020/api/verify` - 验证激活码
+- `GET https://localhost:34020/api/nodes?service={service}` - 获取节点列表
 
 ## 下一步
 

@@ -80,8 +80,8 @@ curl -X POST http://localhost:34010/api/codes \
 
 ## 实现位置
 
-- 生成逻辑: `/opt/cliproxy-activator/lib/services/database.js` (第 234-249 行)
-- API 端点: `/opt/cliproxy-activator/bin/web-server.js` (第 514-556 行)
+- 生成逻辑: `/opt/fogact/lib/services/database.js` (第 234-249 行)
+- API 端点: `/opt/fogact/bin/web-server.js` (第 514-556 行)
 
 ## 修改历史
 

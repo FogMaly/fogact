@@ -2,7 +2,7 @@
 
 ## ✅ 已完成
 
-前端界面已重新设计，参考 yunyi.cfd/user/ 的设计风格。
+前端界面已重新设计，参考 localhost:34020/user/ 的设计风格。
 
 ## 🎨 设计特点
 
@@ -55,7 +55,7 @@
 
 ## 📊 文件信息
 
-- **文件路径**: `/opt/cliproxy-activator/frontend/index.html`
+- **文件路径**: `/opt/fogact/frontend/index.html`
 - **文件大小**: ~450 行
 - **依赖**: 无（纯 HTML/CSS/JavaScript）
 
@@ -63,7 +63,7 @@
 
 ### 启动服务器
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm run web
 ```
 
@@ -76,7 +76,7 @@ npm run web
 
 1. **服务选择** - Claude Code / Codex
 2. **激活码输入** - 支持粘贴
-3. **实时验证** - 调用 yunyi.cfd API
+3. **实时验证** - 调用 localhost:34020 API
 4. **节点测试** - 自动获取最优节点
 5. **结果展示** - 清晰的成功/错误提示
 6. **主题切换** - 深色/浅色模式
@@ -95,7 +95,7 @@ npm run web
 ```javascript
 // 初始化主题
 function initTheme() {
-    const savedTheme = localStorage.getItem('yunyi_user_theme');
+    const savedTheme = localStorage.getItem('fogact_theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const theme = savedTheme || (prefersDark ? 'dark' : 'light');
 
@@ -108,21 +108,21 @@ function toggleTheme() {
     const newTheme = current === 'dark' ? 'light' : 'dark';
 
     document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('yunyi_user_theme', newTheme);
+    localStorage.setItem('fogact_theme', newTheme);
 }
 ```
 
 ### API 集成
 ```javascript
 // 验证激活码
-const verifyResponse = await fetch('https://yunyi.cfd/api/verify', {
+const verifyResponse = await fetch('https://localhost:34020/api/verify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code, service })
 });
 
 // 获取节点列表
-const nodesResponse = await fetch(`https://yunyi.cfd/api/nodes?service=${service}`);
+const nodesResponse = await fetch(`https://localhost:34020/api/nodes?service=${service}`);
 ```
 
 ## ✨ 与原设计的对比
@@ -132,16 +132,16 @@ const nodesResponse = await fetch(`https://yunyi.cfd/api/nodes?service=${service
 | 主题切换 | ❌ | ✅ |
 | 卡片布局 | ❌ | ✅ |
 | 响应式 | ✅ | ✅ |
-| 配色方案 | 渐变紫色 | yunyi.cfd 风格 |
+| 配色方案 | 渐变紫色 | localhost:34020 风格 |
 | 加载动画 | ✅ | ✅ |
 | 信息展示 | 基础 | 网格布局 |
 
 ## 🎉 改进点
 
-1. **更专业的设计** - 参考 yunyi.cfd 的现代化风格
+1. **更专业的设计** - 参考 localhost:34020 的现代化风格
 2. **主题系统** - 支持深色/浅色模式切换
 3. **更好的可读性** - 柔和的配色和清晰的层次
-4. **更强的一致性** - 与 yunyi.cfd 保持视觉一致
+4. **更强的一致性** - 与 localhost:34020 保持视觉一致
 5. **更好的用户体验** - 平滑的动画和反馈
 
 ## 📝 测试激活码
@@ -151,7 +151,7 @@ const nodesResponse = await fetch(`https://yunyi.cfd/api/nodes?service=${service
 
 ## 🔄 后续优化建议
 
-1. 添加侧边栏导航（如 yunyi.cfd）
+1. 添加侧边栏导航（如 localhost:34020）
 2. 添加更多管理功能
 3. 添加使用统计图表
 4. 添加激活历史记录
@@ -159,4 +159,4 @@ const nodesResponse = await fetch(`https://yunyi.cfd/api/nodes?service=${service
 
 ---
 
-**前端界面已完成更新，现在与 yunyi.cfd 保持一致的设计风格！**
+**前端界面已完成更新，现在与 localhost:34020 保持一致的设计风格！**

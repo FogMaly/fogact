@@ -5,7 +5,7 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const { userDb, codeDb, initializeSampleData } = require("../lib/services/database");
+const { userDb, codeDb, usageDb, initializeSampleData } = require("../lib/services/database");
 const { DEFAULT_CONFIG_PATH, getServiceBaseUrl, loadUpstreamConfig } = require("../lib/config/upstream");
 const { readJsonFile, writeJsonFile } = require("../lib/utils/json-file");
 const { maskKey, verifyNewApiKey } = require("../lib/services/newapi");
@@ -309,9 +309,17 @@ function getProxyCode(token, body) {
     token ||
     body?.fogact_code ||
     body?.activation_code ||
-    body?.api_key ||
     ""
   ).trim();
+}
+
+function getRequestCode(req) {
+  return String(getBearerToken(req) || "").trim();
+}
+
+function findCodeByRequest(req) {
+  const token = getRequestCode(req);
+  return token ? codeDb.getByCode(token) : null;
 }
 
 function getActiveProxyCode(codeValue, serviceKey) {
@@ -332,15 +340,244 @@ function getActiveProxyCode(codeValue, serviceKey) {
   return { ok: true, code, serializedCode };
 }
 
+function getRemainingQuota(code) {
+  const quota = code?.quota || {};
+  const total = Number(quota.total || 0);
+  const loggedUsed = aggregateUsageItems(getUsageItemsForCode(code)).tokens;
+  const used = Math.max(loggedUsed, Number(quota.used || 0));
+  if (!Number.isFinite(total) || total <= 0) return Infinity;
+  return Math.max(total - (Number.isFinite(used) ? used : 0), 0);
+}
+
+function getRemainingDailyQuota(code) {
+  const quota = code?.quota || {};
+  const dailyLimit = Number(quota.dailyLimit || quota.daily || 0);
+  const todayItems = getUsageItemsForCode(code).filter((item) => String(item.createdAt || '').startsWith(getTodayKey()));
+  const todayStats = code?.usage?.dailyStats?.[getTodayKey()];
+  const dailyUsed = aggregateUsageItems(todayItems).tokens || Number(todayStats?.tokens || 0);
+  if (!Number.isFinite(dailyLimit) || dailyLimit <= 0) return Infinity;
+  return Math.max(dailyLimit - (Number.isFinite(dailyUsed) ? dailyUsed : 0), 0);
+}
+
+function ensureQuotaAvailable(res, code) {
+  if (getRemainingQuota(code) <= 0) {
+    res.writeHead(402, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: { message: "额度已用尽，请续费或更换可用激活码" } }));
+    return false;
+  }
+
+  if (getRemainingDailyQuota(code) <= 0) {
+    res.writeHead(429, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: { message: "今日额度已用尽，请明日再试或联系管理员调整额度" } }));
+    return false;
+  }
+
+  return true;
+}
+
+function getPeriodBuckets(period = "7d") {
+  const normalized = String(period || "7d").toLowerCase();
+  const hourly = normalized === "24h";
+  const bucketCount = hourly ? 24 : Math.max(1, Math.min(90, parseInt(normalized, 10) || 7));
+  const now = new Date();
+  const buckets = [];
+
+  for (let index = bucketCount - 1; index >= 0; index -= 1) {
+    const date = new Date(now);
+    if (hourly) {
+      date.setMinutes(0, 0, 0);
+      date.setHours(date.getHours() - index);
+      buckets.push(date.toISOString().slice(0, 13));
+    } else {
+      date.setDate(date.getDate() - index);
+      buckets.push(date.toISOString().slice(0, 10));
+    }
+  }
+
+  return { period: normalized, hourly, buckets };
+}
+
+function getUsageBucketKey(createdAt, hourly) {
+  const value = String(createdAt || "");
+  return hourly ? value.slice(0, 13) : value.slice(0, 10);
+}
+
+function parseJsonBody(body) {
+  if (!body) return null;
+  try {
+    return JSON.parse(body);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function extractRequestModel(rawBody) {
+  const body = parseJsonBody(rawBody);
+  return String(body?.model || body?.model_name || "unknown");
+}
+
+function extractUsageFromResponse(data) {
+  const usage = data?.usage || data?.message?.usage || data?.response?.usage || data?.data?.usage || null;
+  if (!usage || typeof usage !== "object") {
+    return { inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 };
+  }
+
+  const inputTokens = Number(
+    usage.prompt_tokens ??
+    usage.input_tokens ??
+    usage.inputTokens ??
+    usage.promptTokens ??
+    0
+  );
+  const outputTokens = Number(
+    usage.completion_tokens ??
+    usage.output_tokens ??
+    usage.outputTokens ??
+    usage.completionTokens ??
+    0
+  );
+  const explicitTotal = Number(
+    usage.total_tokens ??
+    usage.totalTokens ??
+    usage.tokens ??
+    0
+  );
+  const totalTokens = explicitTotal > 0
+    ? explicitTotal
+    : Math.max(inputTokens, 0) + Math.max(outputTokens, 0);
+  const cost = Number(usage.cost ?? usage.total_cost ?? usage.quota ?? usage.used_quota ?? 0);
+
+  return {
+    inputTokens: Number.isFinite(inputTokens) ? Math.max(inputTokens, 0) : 0,
+    outputTokens: Number.isFinite(outputTokens) ? Math.max(outputTokens, 0) : 0,
+    totalTokens: Number.isFinite(totalTokens) ? Math.max(totalTokens, 0) : 0,
+    cost: Number.isFinite(cost) ? Math.max(cost, 0) : 0,
+  };
+}
+
+function extractModelFromResponse(data, fallbackModel) {
+  return String(data?.model || data?.message?.model || data?.response?.model || data?.data?.model || fallbackModel || "unknown");
+}
+
+function parseResponseUsagePayloads(responseBody) {
+  const json = parseJsonBody(responseBody);
+  if (json) return [json];
+
+  return String(responseBody || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trim())
+    .filter((line) => line && line !== "[DONE]")
+    .map((line) => parseJsonBody(line))
+    .filter(Boolean);
+}
+
+function summarizeResponseUsage(responseBody, fallbackModel) {
+  const payloads = parseResponseUsagePayloads(responseBody);
+  let model = fallbackModel || "unknown";
+  const totals = { inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 };
+
+  for (const payload of payloads) {
+    model = extractModelFromResponse(payload, model);
+    const usage = extractUsageFromResponse(payload);
+    totals.inputTokens = Math.max(totals.inputTokens, usage.inputTokens);
+    totals.outputTokens = Math.max(totals.outputTokens, usage.outputTokens);
+    totals.totalTokens = Math.max(totals.totalTokens, usage.totalTokens);
+    totals.cost = Math.max(totals.cost, usage.cost);
+  }
+
+  if (totals.totalTokens <= 0) {
+    totals.totalTokens = totals.inputTokens + totals.outputTokens;
+  }
+
+  return { model, usage: totals };
+}
+
+function settleProxyUsage(code, serializedCode, serviceKey, requestPath, statusCode, rawBody, responseBody) {
+  const requestModel = extractRequestModel(rawBody);
+  const summary = summarizeResponseUsage(responseBody, requestModel);
+  const model = summary.model;
+  const usageTokens = summary.usage;
+  const success = statusCode >= 200 && statusCode < 300;
+  const now = new Date().toISOString();
+
+  usageDb.create({
+    codeId: code.id,
+    code: code.code,
+    service: serviceKey,
+    model,
+    inputTokens: usageTokens.inputTokens,
+    outputTokens: usageTokens.outputTokens,
+    totalTokens: usageTokens.totalTokens,
+    cost: usageTokens.cost,
+    statusCode,
+    success,
+    path: requestPath,
+    createdAt: now,
+  });
+
+  const current = codeDb.getById(code.id) || code;
+  const nextQuota = { ...(current.quota || {}) };
+  const currentUsage = current.usage || {};
+  const dailyStats = { ...(currentUsage.dailyStats || {}) };
+  const modelStats = { ...(currentUsage.modelStats || {}) };
+  const today = getTodayKey();
+  const quotaDelta = success ? usageTokens.totalTokens : 0;
+
+  if (quotaDelta > 0) {
+    const totalLoggedUsage = aggregateUsageItems(getUsageItemsForCode(current)).tokens;
+    nextQuota.used = Math.max(Number(nextQuota.used || 0) + quotaDelta, totalLoggedUsage);
+    nextQuota.dailyUsed = Number(nextQuota.dailyUsed || 0) + quotaDelta;
+
+    const day = dailyStats[today] || { requests: 0, tokens: 0, inputTokens: 0, outputTokens: 0 };
+    dailyStats[today] = {
+      requests: Number(day.requests || 0) + 1,
+      tokens: Number(day.tokens || 0) + quotaDelta,
+      inputTokens: Number(day.inputTokens || 0) + usageTokens.inputTokens,
+      outputTokens: Number(day.outputTokens || 0) + usageTokens.outputTokens,
+    };
+
+    const modelEntry = modelStats[model] || { requests: 0, tokens: 0, inputTokens: 0, outputTokens: 0 };
+    modelStats[model] = {
+      requests: Number(modelEntry.requests || 0) + 1,
+      tokens: Number(modelEntry.tokens || 0) + quotaDelta,
+      inputTokens: Number(modelEntry.inputTokens || 0) + usageTokens.inputTokens,
+      outputTokens: Number(modelEntry.outputTokens || 0) + usageTokens.outputTokens,
+    };
+  }
+
+  codeDb.update(code.id, {
+    status: "active",
+    usedBy: current.usedBy || "proxy-user",
+    lastUsedAt: now,
+    activatedService: serializedCode.service,
+    activatedServiceKey: serializedCode.serviceKey,
+    quota: nextQuota,
+    usage: {
+      totalRequests: Number(currentUsage.totalRequests || 0) + (quotaDelta > 0 ? 1 : 0),
+      totalTokens: Number(currentUsage.totalTokens || 0) + quotaDelta,
+      inputTokens: Number(currentUsage.inputTokens || 0) + (quotaDelta > 0 ? usageTokens.inputTokens : 0),
+      outputTokens: Number(currentUsage.outputTokens || 0) + (quotaDelta > 0 ? usageTokens.outputTokens : 0),
+      lastModel: quotaDelta > 0 ? model : currentUsage.lastModel,
+      lastUsedAt: now,
+      dailyStats: trimUsageHistory(dailyStats),
+      modelStats,
+    },
+  });
+}
+
 function buildProxyHeaders(req, upstreamApiKey, bodyLength) {
   const headers = {};
   for (const [name, value] of Object.entries(req.headers)) {
     const key = name.toLowerCase();
     if (HOP_BY_HOP_HEADERS.has(key)) continue;
     if (key === "authorization" || key === "x-api-key" || key === "api-key") continue;
+    if (key === "accept-encoding") continue;
     headers[name] = value;
   }
   headers.authorization = `Bearer ${upstreamApiKey}`;
+  headers["accept-encoding"] = "identity";
   if (bodyLength !== undefined) headers["content-length"] = Buffer.byteLength(bodyLength);
   return headers;
 }
@@ -364,6 +601,264 @@ function sanitizeProxyBody(req, rawBody) {
 
   return rawBody;
 }
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function trimUsageHistory(history, limit = 90) {
+  const entries = Object.entries(history || {}).sort(([a], [b]) => a.localeCompare(b));
+  return Object.fromEntries(entries.slice(Math.max(0, entries.length - limit)));
+}
+
+function getUsageItemsForCode(code) {
+  if (!code?.code) return [];
+  return usageDb.getByCode(code.code).filter((item) => item.success !== false && Number(item.totalTokens || 0) > 0);
+}
+
+function aggregateUsageItems(items) {
+  return items.reduce((totals, item) => {
+    totals.requests += Number(item.requests || 1);
+    totals.tokens += Number(item.totalTokens || 0);
+    totals.inputTokens += Number(item.inputTokens || 0);
+    totals.outputTokens += Number(item.outputTokens || 0);
+    totals.cost += Number(item.cost || 0);
+    return totals;
+  }, { requests: 0, tokens: 0, inputTokens: 0, outputTokens: 0, cost: 0 });
+}
+
+function emptyUsageBucket(date) {
+  return {
+    date,
+    requests: 0,
+    total_tokens: 0,
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_read_tokens: 0,
+    cache_create_tokens: 0,
+    cost: 0,
+  };
+}
+
+function getUsageHistoryForPeriod(code, period = "7d") {
+  const { period: normalizedPeriod, hourly, buckets } = getPeriodBuckets(period);
+  const items = getUsageItemsForCode(code);
+  const byBucket = new Map(buckets.map((bucket) => [bucket, emptyUsageBucket(bucket)]));
+  const bucketSet = new Set(buckets);
+
+  for (const item of items) {
+    const bucket = getUsageBucketKey(item.createdAt, hourly);
+    if (!bucketSet.has(bucket)) continue;
+    const current = byBucket.get(bucket) || emptyUsageBucket(bucket);
+    current.requests += Number(item.requests || 1);
+    current.total_tokens += Number(item.totalTokens || 0);
+    current.input_tokens += Number(item.inputTokens || 0);
+    current.output_tokens += Number(item.outputTokens || 0);
+    current.cost += Number(item.cost || 0);
+    byBucket.set(bucket, current);
+  }
+
+  return { period: normalizedPeriod, data: buckets.map((bucket) => byBucket.get(bucket) || emptyUsageBucket(bucket)) };
+}
+
+function getCodeUsagePayload(code, period = "7d") {
+  const quota = code?.quota || {};
+  const items = getUsageItemsForCode(code);
+  const totals = aggregateUsageItems(items);
+  const today = getTodayKey();
+  const todayTotals = aggregateUsageItems(items.filter((item) => String(item.createdAt || '').startsWith(today)));
+  const totalQuota = Number(quota.total || 0) > 0 ? Number(quota.total) : 100000;
+  const history = getUsageHistoryForPeriod(code, period);
+
+  return {
+    period: history.period,
+    data: history.data,
+    total_requests: totals.requests,
+    total_tokens: totals.tokens,
+    input_tokens: totals.inputTokens,
+    output_tokens: totals.outputTokens,
+    today_requests: todayTotals.requests,
+    today_tokens: todayTotals.tokens,
+    quota: {
+      total: totalQuota,
+      used: totals.tokens,
+      remaining: Math.max(0, totalQuota - totals.tokens),
+      daily_limit: Number(quota.dailyLimit || quota.daily || 0),
+      daily_used: todayTotals.tokens,
+    },
+    code_info: code ? {
+      code: code.code,
+      service: code.service,
+      expires_at: code.expiresAt,
+      status: code.status,
+      last_used_at: code.lastUsedAt || null,
+    } : null,
+    daily_stats: history.data,
+  };
+}
+
+function getCodeModelTrends(code, period = "7d") {
+  const { period: normalizedPeriod, hourly, buckets } = getPeriodBuckets(period);
+  const byBucket = new Map(buckets.map((bucket) => [bucket, new Map()]));
+  const bucketSet = new Set(buckets);
+
+  for (const item of getUsageItemsForCode(code)) {
+    const bucket = getUsageBucketKey(item.createdAt, hourly);
+    if (!bucketSet.has(bucket)) continue;
+    const model = item.model || "unknown";
+    const models = byBucket.get(bucket) || new Map();
+    const current = models.get(model) || { model, requests: 0, total_tokens: 0, input_tokens: 0, output_tokens: 0, cost: 0 };
+    current.requests += Number(item.requests || 1);
+    current.total_tokens += Number(item.totalTokens || 0);
+    current.input_tokens += Number(item.inputTokens || 0);
+    current.output_tokens += Number(item.outputTokens || 0);
+    current.cost += Number(item.cost || 0);
+    models.set(model, current);
+    byBucket.set(bucket, models);
+  }
+
+  return {
+    period: normalizedPeriod,
+    data: buckets.map((bucket) => ({
+      date: bucket,
+      models: [...(byBucket.get(bucket) || new Map()).values()].sort((a, b) => b.total_tokens - a.total_tokens),
+    })),
+  };
+}
+
+function getCodeUsageSummary(code) {
+  const items = getUsageItemsForCode(code);
+  const totals = aggregateUsageItems(items);
+  const todayTotals = aggregateUsageItems(items.filter((item) => String(item.createdAt || '').startsWith(getTodayKey())));
+  const legacyUsed = Number(code?.quota?.used || 0);
+
+  if (totals.tokens <= 0 && legacyUsed > 0) {
+    totals.tokens = legacyUsed;
+    totals.totalTokens = legacyUsed;
+    totals.requests = Number(code?.usage?.totalRequests || 0);
+    totals.inputTokens = Number(code?.usage?.inputTokens || 0);
+    totals.outputTokens = Number(code?.usage?.outputTokens || 0);
+  }
+
+  return { totals, todayTotals };
+}
+
+function serializeCodeForUserApi(code) {
+  if (!code) return null;
+
+  const serialized = serializeCode(code);
+  const { totals, todayTotals } = getCodeUsageSummary(code);
+  const quota = code.quota || {};
+  const totalQuota = Number(quota.total || 0) > 0 ? Number(quota.total) : 100000;
+  const usedQuota = totals.tokens;
+  const dailyLimit = Number(quota.dailyLimit || quota.daily || 0);
+  const status = serialized.status === "unused" ? "inactive" : serialized.status;
+  const activatedAt = code.activatedAt || (status === "active" ? code.createdAt : null);
+
+  return {
+    id: code.id,
+    key_preview: maskKey(code.code),
+    service_type: serialized.serviceKey,
+    sub_service_type_name: serialized.category || "",
+    billing_type: "quota",
+    status,
+    status_label: status === "inactive" ? "未激活" : serialized.statusLabel,
+    is_bound: false,
+    channel_group_id: code.channelGroupId || null,
+    quota: {
+      total_quota: totalQuota,
+      used_quota: usedQuota,
+      remaining_quota: Math.max(0, totalQuota - usedQuota),
+      daily_quota: dailyLimit,
+      daily_spent: todayTotals.tokens,
+      daily_remaining: dailyLimit > 0 ? Math.max(0, dailyLimit - todayTotals.tokens) : 0,
+      reset_timezone: SERVER_TIMEZONE,
+      next_reset_at: getNextResetAt(),
+    },
+    usage: {
+      total_spent: totals.cost,
+      daily_spent: todayTotals.cost,
+      daily_total_spent: todayTotals.cost,
+      request_count: totals.requests,
+      daily_request_count: todayTotals.requests,
+      input_tokens: totals.inputTokens,
+      output_tokens: totals.outputTokens,
+      cache_read_tokens: 0,
+      cache_write_tokens: 0,
+      total_tokens: totals.tokens,
+    },
+    timestamps: {
+      activated_at: activatedAt,
+      last_used_at: code.lastUsedAt || null,
+      expires_at: code.expiresAt || null,
+      validity_days: code.validity?.days || null,
+    },
+  };
+}
+
+function getNextResetAt() {
+  const next = new Date();
+  const serverTzDate = new Date(next.toLocaleString("en-US", { timeZone: SERVER_TIMEZONE }));
+  const serverMidnight = new Date(serverTzDate);
+  serverMidnight.setHours(24, 0, 0, 0);
+  const delay = serverMidnight.getTime() - serverTzDate.getTime();
+  return new Date(next.getTime() + Math.max(delay, 1000)).toISOString();
+}
+
+function resolveUserApiCode(req) {
+  const code = findCodeByRequest(req);
+  return code || null;
+}
+
+function sendUserApiUnauthorized(res, message = "请先添加有效的 FogAct Key") {
+  res.writeHead(401, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ success: false, message }));
+}
+
+function getCodeUsageRank(code) {
+  const items = getUsageItemsForCode(code);
+  const totals = aggregateUsageItems(items);
+  const latestUsageAt = items.reduce((latest, item) => {
+    const createdAt = new Date(item.createdAt || 0).getTime();
+    return Number.isFinite(createdAt) ? Math.max(latest, createdAt) : latest;
+  }, 0);
+  const lastUsedAt = new Date(code?.lastUsedAt || 0).getTime();
+
+  return {
+    tokens: totals.tokens,
+    requests: totals.requests,
+    latestAt: Math.max(
+      Number.isFinite(latestUsageAt) ? latestUsageAt : 0,
+      Number.isFinite(lastUsedAt) ? lastUsedAt : 0
+    ),
+  };
+}
+
+function sortCodesByUsageActivity(codes) {
+  return [...codes].sort((a, b) => {
+    const left = getCodeUsageRank(a);
+    const right = getCodeUsageRank(b);
+    if (right.tokens !== left.tokens) return right.tokens - left.tokens;
+    if (right.requests !== left.requests) return right.requests - left.requests;
+    return right.latestAt - left.latestAt;
+  });
+}
+
+function findUsageCode(username, user) {
+  const codes = codeDb.getAll();
+  const requestedUser = String(username || '').trim();
+  const candidateValues = [requestedUser];
+  if (!requestedUser || user?.username === requestedUser) {
+    candidateValues.push(user?.username, user?.email, user?.id);
+  }
+  const candidates = new Set(candidateValues.filter(Boolean).map(String));
+  const matchedCodes = codes.filter((code) => candidates.has(String(code.usedBy || '')));
+
+  return sortCodesByUsageActivity(matchedCodes)[0] ||
+    sortCodesByUsageActivity(codes.filter((code) => normalizeCodeStatus(code) === 'active'))[0] ||
+    null;
+}
+
 
 function proxyUpstreamRequest(req, res, serviceKey, code, rawBody) {
   const upstream = loadUpstreamConfig({ configPath: getUpstreamConfigPath() });
@@ -398,7 +893,17 @@ function proxyUpstreamRequest(req, res, serviceKey, code, rawBody) {
     delete responseHeaders["transfer-encoding"];
     delete responseHeaders.connection;
     res.writeHead(proxyRes.statusCode || 502, responseHeaders);
-    proxyRes.pipe(res);
+
+    const chunks = [];
+    proxyRes.on("data", (chunk) => {
+      chunks.push(chunk);
+      res.write(chunk);
+    });
+    proxyRes.on("end", () => {
+      res.end();
+      const rawResponseBody = Buffer.concat(chunks).toString("utf8");
+      settleProxyUsage(code, code.serializedCode || serializeCode(code), serviceKey, requestPath, proxyRes.statusCode || 502, upstreamBody, rawResponseBody);
+    });
   });
 
   proxyReq.on("error", (error) => {
@@ -409,11 +914,6 @@ function proxyUpstreamRequest(req, res, serviceKey, code, rawBody) {
   if (upstreamBody) proxyReq.write(upstreamBody);
   proxyReq.end();
 
-  codeDb.update(code.id, {
-    status: "active",
-    usedBy: code.usedBy || "proxy-user",
-    lastUsedAt: new Date().toISOString(),
-  });
 }
 
 function trimTrailingSlash(value) {
@@ -554,7 +1054,7 @@ const server = http.createServer((req, res) => {
   // Add CORS headers for external access
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, API-Key');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
@@ -589,6 +1089,10 @@ const server = http.createServer((req, res) => {
       if (!codeCheck.ok) {
         res.writeHead(codeCheck.status, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: { message: codeCheck.message } }));
+        return;
+      }
+
+      if (!ensureQuotaAvailable(res, codeCheck.code)) {
         return;
       }
 
@@ -1208,11 +1712,11 @@ const server = http.createServer((req, res) => {
       }
 
       // 刷新额度
-      const dailyQuota = code.quota?.daily || 100000;
+      const dailyQuota = code.quota?.dailyLimit || code.quota?.daily || 100000;
       const updatedCode = codeDb.update(codeId, {
         quota: {
           ...code.quota,
-          used: 0,
+          dailyUsed: 0,
           daily: dailyQuota
         },
         lastQuotaRefresh: now.toISOString()
@@ -1268,51 +1772,31 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Mock API for user frontend - usage data
+  // Legacy user usage endpoint kept for older clients; backed by the real activation code usage log.
   if (urlPath === "/api/user/usage" && req.method === "GET") {
-    const mockUsageData = {
-      success: true,
-      data: {
-        total_requests: 15234,
-        total_tokens: 2456789,
-        today_requests: 342,
-        today_tokens: 45678,
-        quota: {
-          total: 10000000,
-          used: 2456789,
-          remaining: 7543211
-        },
-        daily_stats: [
-          { date: '2026-03-30', requests: 234, tokens: 34567 },
-          { date: '2026-03-31', requests: 289, tokens: 42345 },
-          { date: '2026-04-01', requests: 312, tokens: 45678 },
-          { date: '2026-04-02', requests: 298, tokens: 43210 },
-          { date: '2026-04-03', requests: 276, tokens: 39876 },
-          { date: '2026-04-04', requests: 301, tokens: 44321 },
-          { date: '2026-04-05', requests: 342, tokens: 45678 }
-        ]
-      }
-    };
+    const code = resolveUserApiCode(req);
+    if (!code) {
+      sendUserApiUnauthorized(res, "FogAct Key 不存在或已失效");
+      return;
+    }
+
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const period = url.searchParams.get("period") || "7d";
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(mockUsageData));
+    res.end(JSON.stringify({ success: true, data: getCodeUsagePayload(code, period) }));
     return;
   }
 
-  // Mock API for user frontend - user info
+  // Legacy user info endpoint kept for older clients; backed by the real activation code.
   if (urlPath === "/api/user/info" && req.method === "GET") {
-    const mockUserInfo = {
-      success: true,
-      data: {
-        username: 'test_user',
-        email: 'test@example.com',
-        service: 'Claude Code',
-        status: 'active',
-        created_at: '2026-03-15T00:00:00.000Z',
-        api_key: 'sk-test-' + Math.random().toString(36).substring(2, 15)
-      }
-    };
+    const data = serializeCodeForUserApi(resolveUserApiCode(req));
+    if (!data) {
+      sendUserApiUnauthorized(res, "FogAct Key 不存在或已失效");
+      return;
+    }
+
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(mockUserInfo));
+    res.end(JSON.stringify({ success: true, data }));
     return;
   }
 
@@ -1376,26 +1860,11 @@ const server = http.createServer((req, res) => {
         return;
       }
 
-      if (data.api_key && data.api_key.startsWith('sk-test-')) {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          valid: true,
-          message: '验证成功',
-          data: {
-            username: 'test_user',
-            email: 'test@example.com',
-            service: 'Claude Code'
-          }
-        }));
-        return;
-      }
-
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: false,
         valid: false,
-        message: '验证失败，请检查 API Key 是否正确'
+        message: '请使用 FogAct 激活码验证'
       }));
     }).catch(() => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1410,107 +1879,46 @@ const server = http.createServer((req, res) => {
 
     // GET /user/api/v1/me - Get current user info
     if (apiPath === "/me" && req.method === "GET") {
-      // 从 session 或 query 获取用户信息
-      const username = req.headers['x-user-id'] || 'demo_user';
-      const user = userDb.getByUsername(username) || userDb.getAll()[0];
+      const code = resolveUserApiCode(req);
+      const data = serializeCodeForUserApi(code);
 
-      if (!user) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, message: 'User not found' }));
+      if (!data) {
+        sendUserApiUnauthorized(res, "FogAct Key 不存在或已失效");
         return;
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        data: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          service: user.service,
-          status: user.status,
-          created_at: user.registeredAt || user.createdAt,
-          api_key: user.apiKey || 'sk-demo-' + user.id
-        }
-      }));
+      res.end(JSON.stringify(data));
       return;
     }
 
     // GET /user/api/v1/usage/history - Get usage history
     if (apiPath.startsWith("/usage/history") && req.method === "GET") {
-      const username = req.headers['x-user-id'] || 'demo_user';
-      const user = userDb.getByUsername(username) || userDb.getAll()[0];
-
-      // 查找用户对应的激活码（通过 usedBy 或 username）
-      const codes = codeDb.getAll().filter(c =>
-        c.usedBy === username ||
-        c.usedBy === user?.username ||
-        normalizeCodeStatus(c) === 'active'
-      );
-      const code = codes[0];
-
-      // 计算真实额度数据
-      const totalQuota = code?.quota?.total || 100000;
-      const usedQuota = code?.quota?.used || 0;
-      const dailyLimit = code?.quota?.dailyLimit || 5000;
-      const dailyUsed = code?.quota?.dailyUsed || 0;
-
-      // 生成最近7天的模拟数据（实际生产中应该记录真实使用数据）
-      const today = new Date();
-      const dailyStats = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const requests = Math.floor(Math.random() * 200) + 100;
-        const tokens = requests * Math.floor(Math.random() * 150) + 100;
-        dailyStats.push({
-          date: date.toISOString().split('T')[0],
-          requests,
-          tokens
-        });
+      const code = resolveUserApiCode(req);
+      if (!code) {
+        sendUserApiUnauthorized(res, "FogAct Key 不存在或已失效");
+        return;
       }
 
-      const mockUsageData = {
-        success: true,
-        data: {
-          total_requests: usedQuota,
-          total_tokens: usedQuota * 12, // 估算 token 数量
-          today_requests: dailyUsed,
-          today_tokens: dailyUsed * 12,
-          quota: {
-            total: totalQuota,
-            used: usedQuota,
-            remaining: totalQuota - usedQuota,
-            daily_limit: dailyLimit,
-            daily_used: dailyUsed
-          },
-          code_info: code ? {
-            code: code.code,
-            service: code.service,
-            expires_at: code.expiresAt,
-            status: code.status
-          } : null,
-          daily_stats: dailyStats
-        }
-      };
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const period = url.searchParams.get("period") || "7d";
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(mockUsageData));
+      res.end(JSON.stringify(getCodeUsagePayload(code, period)));
       return;
     }
 
     // GET /user/api/v1/usage/model-trends - Get model usage trends
     if (apiPath.startsWith("/usage/model-trends") && req.method === "GET") {
+      const code = resolveUserApiCode(req);
+      if (!code) {
+        sendUserApiUnauthorized(res, "FogAct Key 不存在或已失效");
+        return;
+      }
+
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const period = url.searchParams.get("period") || "7d";
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        data: {
-          models: [
-            { name: 'claude-opus-4-6', requests: 8234, tokens: 1456789 },
-            { name: 'claude-sonnet-4-6', requests: 5000, tokens: 800000 },
-            { name: 'claude-haiku-4-5', requests: 2000, tokens: 200000 }
-          ]
-        }
-      }));
+      res.end(JSON.stringify(getCodeModelTrends(code, period)));
       return;
     }
 
@@ -1539,18 +1947,10 @@ const server = http.createServer((req, res) => {
     if (apiPath === "/batch-info" && req.method === "POST") {
       parseRequestBody(req).then((data) => {
         const keys = Array.isArray(data.keys) ? data.keys : [];
-        const now = new Date().toISOString();
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           success: true,
-          results: keys.map((key, index) => ({
-            id: `fogact-key-${index + 1}`,
-            key_preview: String(key || '').slice(0, 8) || `fogact-${index + 1}`,
-            service_type: String(key || '').toLowerCase().includes('codex') ? 'codex' : 'claude',
-            status: 'active',
-            quota: { total: 100000, used: 0, remaining: 100000, unit: 'tokens' },
-            timestamps: { activated_at: now, last_used_at: null, expires_at: null },
-          })),
+          results: keys.map((key) => serializeCodeForUserApi(codeDb.getByCode(String(key || '').trim()))),
         }));
       }).catch(() => {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1689,12 +2089,12 @@ server.listen(PORT, '0.0.0.0', () => {
         : null;
       if (lastRefreshDate && lastRefreshDate.toISOString().split('T')[0] === serverDate) continue;
 
-      const dailyQuota = code.quota?.daily || 100000;
+      const dailyQuota = code.quota?.daily || code.quota?.dailyLimit || 100000;
       codeDb.update(code.id, {
         quota: {
           ...code.quota,
-          used: 0,
-          daily: dailyQuota
+          daily: dailyQuota,
+          dailyUsed: 0
         },
         lastQuotaRefresh: new Date().toISOString()
       });

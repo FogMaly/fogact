@@ -1,11 +1,11 @@
 # 🚀 快速启动指南
 
-## 立即开始使用 CLIProxy Activator
+## 立即开始使用 FogAct
 
 ### 方式 1: CLI 命令行模式
 
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm start
 ```
 
@@ -14,7 +14,7 @@ npm start
 ### 方式 2: Web 图形界面模式
 
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm run web
 ```
 

@@ -1,4 +1,4 @@
-# CLIProxy Activator - 验证报告
+# FogAct - 验证报告
 
 **验证日期**: 2026-04-05
 **项目版本**: v1.0.0
@@ -13,7 +13,7 @@
 **进程信息**:
 ```
 PID: 1910950
-命令: node /opt/cliproxy-activator/bin/web-server.js
+命令: node /opt/fogact/bin/web-server.js
 状态: 运行中
 ```
 
@@ -35,20 +35,20 @@ PID: 1910950
 
 **验证结果**:
 ```bash
-curl -s http://10.0.66.2:34010/ | grep "CLIProxy"
-# 返回: <title>CLIProxy Activator - 激活中心</title>
+curl -s http://10.0.66.2:34010/ | grep "FogAct"
+# 返回: <title>FogAct - 激活中心</title>
 ```
 
 ### 3. 前端界面验证 ✅
 
 **文件信息**:
-- 路径: `/opt/cliproxy-activator/frontend/index.html`
+- 路径: `/opt/fogact/frontend/index.html`
 - 大小: 15KB
 - 行数: 448 行
 - 编码: UTF-8
 
 **设计特性**:
-- ✅ yunyi.cfd 风格配色方案
+- ✅ localhost:34020 风格配色方案
 - ✅ 深色/浅色主题切换
 - ✅ HSL 颜色变量系统
 - ✅ 响应式卡片布局
@@ -137,7 +137,7 @@ Access-Control-Allow-Headers: Content-Type
 1. ✅ Web 服务器正常运行在端口 34010
 2. ✅ 监听 0.0.0.0，支持外网访问
 3. ✅ 前端界面完整（448 行）
-4. ✅ yunyi.cfd 设计风格已实现
+4. ✅ localhost:34020 设计风格已实现
 5. ✅ 深色/浅色主题切换功能正常
 6. ✅ CORS 跨域支持已启用
 7. ✅ 所有自动化测试通过
@@ -160,7 +160,7 @@ Access-Control-Allow-Headers: Content-Type
 
 **状态**: 生产就绪 ✅
 **版本**: v1.0.0
-**位置**: /opt/cliproxy-activator
+**位置**: /opt/fogact
 **验证时间**: 2026-04-05
 
 **项目已完成所有功能开发和验证，可立即投入使用！**
@@ -170,7 +170,7 @@ Access-Control-Allow-Headers: Content-Type
 ## 📝 备注
 
 - Web 服务器已在后台运行（PID: 1910950）
-- 前端界面参考 yunyi.cfd 设计，使用相同的 HSL 颜色方案
+- 前端界面参考 localhost:34020 设计，使用相同的 HSL 颜色方案
 - 支持深色/浅色主题切换，用户偏好保存在 localStorage
 - 所有网络接口均可访问（0.0.0.0 监听）
 - CORS 已启用，支持跨域 API 调用

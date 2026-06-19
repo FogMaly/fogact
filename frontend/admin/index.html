@@ -1,9 +1,19 @@
 <!DOCTYPE html>
-<html class="light" lang="zh-CN">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理中心 | FogIDC Activator</title>
+    <title>管理中心 | FogAct</title>
+
+    <script>
+      ;(function () {
+        var theme = localStorage.getItem('fogact_theme') || localStorage.getItem('admin_theme') || 'system';
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+      })();
+    </script>
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -381,7 +391,7 @@
             height: 80%;
         }
     </style>
-    <link rel="stylesheet" href="/assets/market-ui.css?v=20260617-platform-scope1">
+    <link rel="stylesheet" href="/assets/market-ui.css?v=20260619-theme1">
 </head>
 <body class="market-admin bg-surface text-on-surface min-h-screen flex overflow-hidden">
     <span class="market-mouse-light" aria-hidden="true"></span>
@@ -394,8 +404,8 @@
                     <div class="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <span class="material-symbols-outlined text-on-primary text-3xl">shield</span>
                     </div>
-                    <h1 class="text-2xl font-bold text-on-surface mb-2">管理后台登录</h1>
-                    <p class="text-sm text-on-surface-variant">FogIDC Activator 企业版</p>
+                    <h1 class="text-2xl font-bold text-on-surface mb-2">登录管理中心</h1>
+                    <p class="text-sm text-on-surface-variant">FogAct 管理中心</p>
                 </div>
 
                 <div id="login-alert" class="hidden mb-4 p-3 rounded-xl text-sm bg-error-container border border-error text-on-error-container"></div>
@@ -421,7 +431,7 @@
                 </form>
 
                 <div class="text-center mt-6 text-xs text-on-surface-variant">
-                    默认密码: admin123 (可通过环境变量 ADMIN_PASSWORD 修改)
+                    管理密码可通过 ADMIN_PASSWORD 环境变量配置
                 </div>
             </div>
         </div>
@@ -435,8 +445,8 @@
             <div class="text-xl font-black text-on-surface mb-8 px-4 flex items-center gap-3">
                 <span class="market-logo">F</span>
                 <span>
-                    <span class="block leading-none">FogIDC</span>
-                    <span class="block text-xs font-bold text-on-surface-variant mt-1">Admin console</span>
+                    <span class="block leading-none">FogAct</span>
+                    <span class="block text-xs font-bold text-on-surface-variant mt-1">管理中心</span>
                 </span>
             </div>
 
@@ -661,7 +671,7 @@
                     <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/20">
                         <h3 class="text-lg font-bold text-on-surface mb-6">系统日志</h3>
                         <div id="logs-container">
-                            <p class="text-on-surface-variant text-center py-8">日志功能开发中...</p>
+                            <p class="text-on-surface-variant text-center py-8">暂无日志记录，后续操作会在这里展示。</p>
                         </div>
                     </div>
                 </div>
@@ -671,7 +681,7 @@
                     <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/20">
                         <h3 class="text-lg font-bold text-on-surface mb-6">系统设置</h3>
                         <div id="settings-container">
-                            <p class="text-on-surface-variant text-center py-8">设置功能开发中...</p>
+                            <p class="text-on-surface-variant text-center py-8">请选择需要维护的系统配置。</p>
                         </div>
                     </div>
                 </div>
@@ -684,7 +694,7 @@
     <div id="modal-root"></div>
 
     <!-- JavaScript -->
-    <script src="/admin/admin-panel-v2.js?v=20260617-platform-scope1"></script>
+    <script src="/admin/admin-panel-v2.js?v=20260619-theme1"></script>
     <script>
         let marketPointerRaf = 0;
         window.addEventListener('load', () => {

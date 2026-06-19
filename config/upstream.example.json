@@ -1,7 +1,7 @@
 {
   "provider": "newapi",
   "baseUrl": "https://newapi.example.com",
-  "apiKey": "sk-your-upstream-newapi-key",
+  "apiKey": "YOUR_UPSTREAM_NEWAPI_KEY",
   "services": {
     "claude": {
       "baseUrl": "https://newapi.example.com"

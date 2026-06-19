@@ -4,19 +4,19 @@
 
 ### 方法 1: 使用 npm 脚本（推荐）
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm run web
 ```
 
 ### 方法 2: 直接运行
 ```bash
-node /opt/cliproxy-activator/bin/web-server.js
+node /opt/fogact/bin/web-server.js
 ```
 
 ### 方法 3: 全局安装后使用
 ```bash
 npm install -g .
-cliproxy-web
+fogact-web
 ```
 
 ## 访问界面
@@ -61,7 +61,7 @@ http://localhost:3000
 - 实时错误反馈
 
 🌐 **API 集成**
-- 自动调用 yunyi.cfd API
+- 自动调用 localhost:34020 API
 - 验证激活码有效性
 - 获取可用节点列表
 - 显示最优节点
@@ -110,7 +110,7 @@ N6P3BDX4-VCGH-T7MT-EX6J-3SYHEC8RXYX7
 
 ```
 ┌─────────────────────────────────────┐
-│  CLIProxy Activator                 │
+│  FogAct                 │
 │  激活 Claude Code 或 Codex 服务      │
 │                                     │
 │  选择服务                            │
@@ -129,7 +129,7 @@ N6P3BDX4-VCGH-T7MT-EX6J-3SYHEC8RXYX7
 
 - **前端**: 纯 HTML + CSS + JavaScript
 - **后端**: Node.js HTTP 服务器
-- **API**: Fetch API 调用 yunyi.cfd
+- **API**: Fetch API 调用 localhost:34020
 - **样式**: 现代 CSS3（渐变、动画、响应式）
 
 ## 端口配置
@@ -159,7 +159,7 @@ lsof -i :3000
 
 ### API 调用失败
 - 检查网络连接
-- 确认 yunyi.cfd 可访问
+- 确认 localhost:34020 可访问
 - 查看浏览器控制台错误信息
 
 ## 与 CLI 对比

@@ -1,12 +1,12 @@
-# CLIProxy Activator - 前端部署方案
+# FogAct - 前端部署方案
 
 ## 目录结构
 
 ```
-/opt/cliproxy-activator/frontend/
+/opt/fogact/frontend/
 ├── index.html                    # 根跳转页（重定向到 /user/）
 ├── index.html.bak               # 原激活表单页面备份
-├── user/                        # 云驿 API 监控前端（从 fog-activator 复制）
+├── user/                        # FogAct API 监控前端（从 fog-activator 复制）
 │   ├── index.html              # Vue.js SPA 入口
 │   └── assets/                 # 构建后的 JS/CSS 资源
 │       ├── index-Da98HOxL.js   # 主应用入口
@@ -23,7 +23,7 @@
 
 ### 1. 根跳转机制
 
-**文件**: `/opt/cliproxy-activator/frontend/index.html`
+**文件**: `/opt/fogact/frontend/index.html`
 
 ```html
 <!doctype html>
@@ -32,7 +32,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="refresh" content="0; url=/user/" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CLIProxy Activator</title>
+    <title>FogAct</title>
   </head>
   <body>
     <p>正在跳转到 <a href="/user/">/user/</a>...</p>
@@ -46,20 +46,20 @@
 
 ### 2. 用户监控前端
 
-**文件**: `/opt/cliproxy-activator/frontend/user/index.html`
+**文件**: `/opt/fogact/frontend/user/index.html`
 
 - **技术栈**: Vue.js 3 单页应用
-- **标题**: "CLIProxy - API 使用监控"（已从"云驿"改为"CLIProxy"）
+- **标题**: "FogAct - API 使用监控"（已从"FogAct"改为"FogAct"）
 - **功能特性**:
   - 主题系统（深色/浅色/系统自动）
-  - 存储在 `localStorage.yunyi_user_theme`
+  - 存储在 `localStorage.fogact_theme`
   - FOUC 防护（内联背景色）
   - 加载动画占位符
   - 图表可视化（使用 Chart.js）
 
 ### 3. Web 服务器更新
 
-**文件**: `/opt/cliproxy-activator/bin/web-server.js`
+**文件**: `/opt/fogact/bin/web-server.js`
 
 **新增功能**:
 - ✅ 静态文件服务器（支持所有前端资源）
@@ -96,7 +96,7 @@ curl -I http://localhost:34010/user/assets/index-Da98HOxL.js
 
 ```bash
 # 方式 1: 使用 npm script
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm run web
 
 # 方式 2: 直接运行
@@ -114,12 +114,12 @@ node bin/web-server.js
 
 ## 与 fog-activator 的对比
 
-| 项目 | fog-activator | cliproxy-activator |
+| 项目 | fog-activator | fogact |
 |------|---------------|-------------------|
-| 前端位置 | `/opt/fog-activator/frontend/` | `/opt/cliproxy-activator/frontend/` |
+| 前端位置 | `/opt/fog-activator/frontend/` | `/opt/fogact/frontend/` |
 | 根跳转页 | ✅ 有 | ✅ 已添加 |
 | 用户监控 | `/user/` | ✅ 已复制 |
-| 标题 | "云驿" | "CLIProxy" |
+| 标题 | "FogAct" | "FogAct" |
 | Web 服务器 | 未配置 | ✅ 已配置 |
 | 静态文件服务 | ❌ 无 | ✅ 完整支持 |
 
@@ -127,7 +127,7 @@ node bin/web-server.js
 
 ### 1. API 端点配置
 前端中的 API 调用需要配置正确的后端地址：
-- 当前可能指向 `https://api.fogidc.com`
+- 当前可能指向 `https://api.fogact.com`
 - 需要根据实际部署调整 baseURL
 
 ### 2. Nginx 反向代理（可选）
@@ -150,7 +150,7 @@ location /user/ {
 
 ## 总结
 
-✅ 已成功将 fog-activator 的前端结构应用到 cliproxy-activator：
+✅ 已成功将 fog-activator 的前端结构应用到 fogact：
 - 根跳转页已创建
 - 用户监控前端已复制并调整
 - Web 服务器已升级支持完整静态文件服务

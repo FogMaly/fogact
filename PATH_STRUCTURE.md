@@ -1,15 +1,15 @@
-# CLIProxy Activator - 路径结构
+# FogAct - 路径结构
 
 ## 访问地址
 
 ### 用户端
 - **URL**: http://localhost:34010/user/
-- **文件位置**: `/opt/cliproxy-activator/frontend/user/`
+- **文件位置**: `/opt/fogact/frontend/user/`
 - **功能**: 用户仪表板、使用量监控、API Key 管理
 
 ### 管理端
 - **URL**: http://localhost:34010/admin/
-- **文件位置**: `/opt/cliproxy-activator/frontend/admin/`
+- **文件位置**: `/opt/fogact/frontend/admin/`
 - **功能**: 用户管理、激活码管理、系统统计
 - **默认密码**: `admin123` (可通过环境变量 `ADMIN_PASSWORD` 修改)
 
@@ -40,7 +40,7 @@
 ## 文件结构
 
 ```
-/opt/cliproxy-activator/
+/opt/fogact/
 ├── frontend/
 │   ├── admin/
 │   │   ├── index.html              # 管理后台主页
@@ -68,7 +68,7 @@
 ## 启动服务
 
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 node bin/web-server.js
 ```
 

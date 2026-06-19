@@ -9,7 +9,7 @@
 ## 📦 交付内容
 
 ### 1. 数据库扩展 (database.js)
-**文件**: `/opt/cliproxy-activator/lib/services/database.js`
+**文件**: `/opt/fogact/lib/services/database.js`
 
 新增字段：
 - `name`: 代码名称
@@ -31,7 +31,7 @@
 - `batchCreate(count, template)` - 批量创建激活码
 
 ### 2. 后端 API 路由 (web-server.js)
-**文件**: `/opt/cliproxy-activator/bin/web-server.js`
+**文件**: `/opt/fogact/bin/web-server.js`
 
 新增 API 端点：
 ```
@@ -44,7 +44,7 @@ PUT  /api/code-center/codes/:id           # 更新代码
 ```
 
 ### 3. 前端页面集成
-**目录**: `/opt/cliproxy-activator/frontend/code-center/`
+**目录**: `/opt/fogact/frontend/code-center/`
 
 页面文件：
 - `index.html` - 代码中心入口（导航页）
@@ -54,7 +54,7 @@ PUT  /api/code-center/codes/:id           # 更新代码
 - `README.md` - 前端使用说明
 
 ### 4. 文档
-**目录**: `/opt/cliproxy-activator/docs/`
+**目录**: `/opt/fogact/docs/`
 
 - `DESIGN_SYSTEM.md` - 设计系统规范
 - `CODE_CENTER_ITERATION.md` - 迭代详细报告
@@ -119,7 +119,7 @@ PUT  /api/code-center/codes/:id           # 更新代码
 
 ### 启动服务
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm run web
 ```
 
@@ -187,7 +187,7 @@ curl "http://localhost:34010/api/code-center/filter?category=高级版&service=C
 ## 📁 项目结构
 
 ```
-/opt/cliproxy-activator/
+/opt/fogact/
 ├── bin/
 │   └── web-server.js              # Web 服务器 (842 行，新增 API)
 ├── lib/
@@ -235,10 +235,10 @@ curl "http://localhost:34010/api/code-center/filter?category=高级版&service=C
 
 ## 📚 相关文档
 
-- **快速启动**: `/opt/cliproxy-activator/docs/CODE_CENTER_QUICKSTART.md`
-- **API 参考**: `/opt/cliproxy-activator/docs/API_REFERENCE.md`
-- **设计系统**: `/opt/cliproxy-activator/docs/DESIGN_SYSTEM.md`
-- **完整报告**: `/opt/cliproxy-activator/docs/CODE_CENTER_ITERATION.md`
+- **快速启动**: `/opt/fogact/docs/CODE_CENTER_QUICKSTART.md`
+- **API 参考**: `/opt/fogact/docs/API_REFERENCE.md`
+- **设计系统**: `/opt/fogact/docs/DESIGN_SYSTEM.md`
+- **完整报告**: `/opt/fogact/docs/CODE_CENTER_ITERATION.md`
 
 ---
 

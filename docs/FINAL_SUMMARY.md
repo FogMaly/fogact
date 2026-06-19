@@ -1,11 +1,11 @@
-# CLIProxy Activator - 最终总结
+# FogAct - 最终总结
 
 ## 项目完成状态：✅ 100% 完成
 
 ### 核心功能
 
 ✅ **激活系统**
-- 激活码验证（集成 yunyi.cfd API）
+- 激活码验证（集成 localhost:34020 API）
 - 支持 Claude Code 和 Codex
 - 自动节点测试和选择
 - 配置文件自动写入
@@ -47,11 +47,11 @@
 **配置文件位置**:
 - Claude Code: `~/.claude/config.json`
 - Codex: `~/.codex/config.json`
-- 备份目录: `~/.cliproxy-activator/backups/`
+- 备份目录: `~/.fogact/backups/`
 
 **API 集成**:
-- https://yunyi.cfd/api/verify
-- https://yunyi.cfd/api/nodes
+- https://localhost:34020/api/verify
+- https://localhost:34020/api/nodes
 
 ### 测试激活码
 
@@ -83,7 +83,7 @@ npm start restore
 ### 项目结构
 
 ```
-cliproxy-activator/
+fogact/
 ├── bin/
 │   ├── cli.js              # CLI 入口
 │   └── web-server.js       # Web 服务器 (端口 34010)
@@ -94,7 +94,7 @@ cliproxy-activator/
 │   │   ├── test.js         # 测试命令
 │   │   └── restore.js      # 恢复命令
 │   ├── services/           # 服务层
-│   │   ├── cliproxy-api.js # API 集成
+│   │   ├── fogact-api.js # API 集成
 │   │   ├── node-service.js # 节点管理
 │   │   └── backup-service.js # 备份管理
 │   └── config/             # 配置管理
@@ -158,9 +158,9 @@ cliproxy-activator/
 6. **中文友好** - 界面和文档都支持中文
 7. **易于部署** - 单个命令即可启动
 
-### 与 yunyi-activator 对比
+### 与 fogact 对比
 
-| 功能 | yunyi-activator | cliproxy-activator | 状态 |
+| 功能 | fogact | fogact | 状态 |
 |------|----------------|-------------------|------|
 | 激活码验证 | ✓ | ✓ | ✅ 完成 |
 | 节点测试 | ✓ | ✓ | ✅ 完成 |
@@ -174,16 +174,16 @@ cliproxy-activator/
 
 **开发环境**:
 ```bash
-cd /opt/cliproxy-activator
+cd /opt/fogact
 npm install
 npm run web
 ```
 
 **生产环境**:
 ```bash
-npm install -g /opt/cliproxy-activator
-cliproxy-activator
-cliproxy-web
+npm install -g /opt/fogact
+fogact
+fogact-web
 ```
 
 **Docker 部署** (可选):
