@@ -143,6 +143,7 @@ try {
     enterFixedMenuScreen,
     leaveFixedMenuScreen,
     shouldUseFixedMenuScreen,
+    waitForMenuReturn,
   } = require("../lib/index.js");
   const repeated = applyMenuInput("\u001b[B\u001b[B\u001b[A", 0, 4);
   const wrapped = applyMenuInput("\u001b[A", 0, 4);
@@ -162,7 +163,8 @@ try {
     !shouldUseFixedMenuScreen({ TERM: "xterm-256color" }, fakeTty) ||
     shouldUseFixedMenuScreen({ TERM: "dumb" }, fakeTty) ||
     !writes[0].includes("\u001b[?1049h") ||
-    !writes[1].includes("\u001b[?1049l")
+    !writes[1].includes("\u001b[?1049l") ||
+    typeof waitForMenuReturn !== "function"
   ) {
     console.log("✗ Interactive menu key parsing failed");
     process.exit(1);
