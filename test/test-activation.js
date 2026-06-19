@@ -33,7 +33,7 @@ console.log("");
 // Test 2: Node selection logic
 console.log("Test 2: Node selection logic...");
 try {
-  const { selectBestNode } = require("../lib/services/node-service.js");
+  const { selectBestNode, formatNodeResults } = require("../lib/services/node-service.js");
 
   const mockResults = [
     { url: "https://node1.example.com", available: true, latency: 150 },
@@ -43,7 +43,19 @@ try {
 
   const best = selectBestNode(mockResults);
 
-  if (best && best.url === "https://node2.example.com" && best.latency === 80) {
+  const table = formatNodeResults([
+    { name: "FogAct", serviceLabel: "Codex", url: "https://node2.example.com", available: true, avgLatency: 80, latencyStdDev: 4, score: 88 },
+    { name: "Backup", serviceLabel: "Claude", url: "https://node3.example.com", available: false, avgLatency: -1, latencyStdDev: 0, score: 0 },
+  ]);
+
+  if (
+    best &&
+    best.url === "https://node2.example.com" &&
+    best.latency === 80 &&
+    table.includes("状态 节点") &&
+    table.includes("★ 最优") &&
+    table.includes("推荐节点")
+  ) {
     console.log("✓ Node selection works correctly");
   } else {
     console.log("✗ Node selection failed");
@@ -172,6 +184,25 @@ try {
   console.log("✓ Interactive menu handles repeated arrows and shortcuts");
 } catch (err) {
   console.log("✗ Interactive menu key parsing test failed:", err.message);
+  process.exit(1);
+}
+
+// Test 6b: Backup display formatting
+console.log("Test 6b: Backup display formatting...");
+try {
+  const { formatBackupTitle } = require("../lib/commands/restore.js");
+  const title = formatBackupTitle({
+    service: "codex",
+    timestamp: "2026-06-19T12:00:00.000Z",
+    files: [{ originalPath: "/tmp/config.toml" }, { originalPath: "/tmp/auth.json" }],
+  });
+  if (!title.includes("Codex") || !title.includes("2 个文件")) {
+    console.log("✗ Backup display formatting failed");
+    process.exit(1);
+  }
+  console.log("✓ Backup display formatting works correctly");
+} catch (err) {
+  console.log("✗ Backup display formatting test failed:", err.message);
   process.exit(1);
 }
 
