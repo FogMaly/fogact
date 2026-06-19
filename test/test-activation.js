@@ -44,8 +44,8 @@ try {
   const best = selectBestNode(mockResults);
 
   const table = formatNodeResults([
-    { name: "FogAct", serviceLabel: "Codex", url: "https://node2.example.com", available: true, avgLatency: 80, latencyStdDev: 4, score: 88 },
-    { name: "Backup", serviceLabel: "Claude", url: "https://node3.example.com", available: false, avgLatency: -1, latencyStdDev: 0, score: 0 },
+    { name: "FogAct", url: "https://node2.example.com", available: true, avgLatency: 80, latencyStdDev: 4, score: 88, ping: { ok: true, latency: 20 }, tcp: { ok: true, latency: 30 }, http: { ok: true, latency: 80 } },
+    { name: "Backup", url: "https://node3.example.com", available: false, avgLatency: -1, latencyStdDev: 0, score: 0, ping: { ok: false, latency: -1 }, tcp: { ok: false, latency: -1 }, http: { ok: false, latency: -1 } },
   ]);
 
   if (
@@ -55,6 +55,9 @@ try {
     table.includes("节点测试结果") &&
     table.includes("★ 最优") &&
     table.includes("测试完成，共 2 个节点，1 个可用") &&
+    table.includes("ping:20ms") &&
+    table.includes("tcp:30ms") &&
+    table.includes("http:80ms") &&
     !table.includes("推荐节点") &&
     !table.includes("状态 节点")
   ) {
