@@ -5,7 +5,7 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
-const { userDb, codeDb, usageDb, initializeSampleData } = require("../lib/services/database");
+const { userDb, codeDb, usageDb, cardMergeDb, initializeSampleData } = require("../lib/services/database");
 const { DEFAULT_CONFIG_PATH, getServiceBaseUrl, loadUpstreamConfig } = require("../lib/config/upstream");
 const { readJsonFile, writeJsonFile } = require("../lib/utils/json-file");
 const { maskKey, verifyNewApiKey } = require("../lib/services/newapi");
@@ -49,6 +49,9 @@ const CODE_STATUS_MAP = {
   "禁用": "disabled",
   expired: "expired",
   "已过期": "expired",
+  merged: "merged",
+  "已合并": "merged",
+  "已注销": "merged",
 };
 
 const CODE_STATUS_LABEL_MAP = {
@@ -56,6 +59,7 @@ const CODE_STATUS_LABEL_MAP = {
   active: "活跃",
   disabled: "已禁用",
   expired: "已过期",
+  merged: "已注销",
 };
 
 const HOP_BY_HOP_HEADERS = new Set([
@@ -188,6 +192,13 @@ function normalizeCodeStatus(codeOrStatus, expiresAt) {
     typeof codeOrStatus === "object" && codeOrStatus !== null
       ? codeOrStatus.expiresAt
       : expiresAt;
+  const normalizedStatus = rawStatus === undefined || rawStatus === null || rawStatus === ""
+    ? "unused"
+    : CODE_STATUS_MAP[String(rawStatus).trim().toLowerCase()] || "unused";
+
+  if (["disabled", "merged"].includes(normalizedStatus)) {
+    return normalizedStatus;
+  }
 
   if (rawExpiresAt) {
     const expiry = new Date(rawExpiresAt);
@@ -196,15 +207,11 @@ function normalizeCodeStatus(codeOrStatus, expiresAt) {
     }
   }
 
-  if (rawStatus === undefined || rawStatus === null || rawStatus === "") {
-    return "unused";
-  }
-
-  return CODE_STATUS_MAP[String(rawStatus).trim().toLowerCase()] || "unused";
+  return normalizedStatus;
 }
 
-function getCodeStatusLabel(status) {
-  return CODE_STATUS_LABEL_MAP[normalizeCodeStatus(status)] || "未激活";
+function getCodeStatusLabel(codeOrStatus, expiresAt) {
+  return CODE_STATUS_LABEL_MAP[normalizeCodeStatus(codeOrStatus, expiresAt)] || "未激活";
 }
 
 function serializeUser(user) {
@@ -231,7 +238,7 @@ function serializeCode(code) {
     serviceLabel: service,
     allowedModels: code.allowedModels || (getServiceKey(service) === "codex" ? ["codex"] : ["claude"]),
     status,
-    statusLabel: getCodeStatusLabel(status),
+    statusLabel: getCodeStatusLabel(code),
     isExpired: status === "expired",
   };
 }
@@ -277,6 +284,51 @@ function buildActivationData(serializedCode, req) {
     publicBaseUrl,
     baseUrl,
     apiKey,
+  };
+}
+
+function normalizeCodeSpecPayload(payload = {}) {
+  const quota = { ...(payload.quota || {}) };
+  const billingType = normalizeBillingType({ ...payload, quota });
+  const cycleType = normalizeCycleType({ ...payload, quota });
+  const quotaUnit = normalizeQuotaUnit({ ...payload, quota });
+  const resetTimezone = "Asia/Shanghai";
+  const subServiceType = String(payload.subServiceType || payload.sub_service_type || payload.category || "标准运营").trim() || "标准运营";
+  const durationDays = Number(payload.durationDays || payload.duration || payload.validity?.days || quota.periodDays || 0);
+
+  quota.billingType = billingType;
+  quota.cycleType = cycleType;
+  quota.unit = quotaUnit;
+  quota.resetTimezone = resetTimezone;
+  if (quota.dailyQuota !== undefined && quota.dailyLimit === undefined) quota.dailyLimit = Number(quota.dailyQuota || 0);
+  if (quota.dailyLimit !== undefined && quota.dailyQuota === undefined) quota.dailyQuota = Number(quota.dailyLimit || 0);
+  if (quota.daily !== undefined && quota.dailyLimit === undefined) quota.dailyLimit = Number(quota.daily || 0);
+  if (quota.dailyQuota !== undefined) quota.dailyQuota = Number(quota.dailyQuota || 0);
+  if (quota.dailyLimit !== undefined) quota.dailyLimit = Number(quota.dailyLimit || 0);
+  if (durationDays > 0) quota.periodDays = durationDays;
+  if (billingType === "duration" && Number(quota.dailyQuota || quota.dailyLimit || 0) > 0 && durationDays > 0) {
+    quota.total = Number(quota.dailyQuota || quota.dailyLimit || 0) * durationDays;
+  } else if (quota.total !== undefined) {
+    quota.total = Number(quota.total || 0);
+  }
+
+  return {
+    billingType,
+    cycleType,
+    quotaUnit,
+    resetTimezone,
+    subServiceType,
+    category: subServiceType,
+    quota,
+  };
+}
+
+function withCodeSpec(payload = {}) {
+  const spec = normalizeCodeSpecPayload(payload);
+  return {
+    ...payload,
+    ...spec,
+    quota: spec.quota,
   };
 }
 
@@ -335,6 +387,9 @@ function getActiveProxyCode(codeValue, serviceKey) {
   }
   if (serializedCode.status === "expired") {
     return { ok: false, status: 403, message: "激活码已过期" };
+  }
+  if (serializedCode.status === "merged") {
+    return { ok: false, status: 403, message: "此激活码已合并注销，无法继续使用" };
   }
 
   return { ok: true, code, serializedCode };
@@ -759,8 +814,12 @@ function serializeCodeForUserApi(code) {
     id: code.id,
     key_preview: maskKey(code.code),
     service_type: serialized.serviceKey,
-    sub_service_type_name: serialized.category || "",
-    billing_type: "quota",
+    sub_service_type_name: serialized.subServiceType || serialized.sub_service_type || serialized.category || "",
+    billing_type: normalizeBillingType(code),
+    cycle_type: normalizeCycleType(code),
+    quota_unit: normalizeQuotaUnit(code),
+    reset_timezone: serialized.resetTimezone || serialized.reset_timezone || quota.resetTimezone || SERVER_TIMEZONE,
+    allowed_models: serialized.allowedModels,
     status,
     status_label: status === "inactive" ? "未激活" : serialized.statusLabel,
     is_bound: false,
@@ -772,7 +831,8 @@ function serializeCodeForUserApi(code) {
       daily_quota: dailyLimit,
       daily_spent: todayTotals.tokens,
       daily_remaining: dailyLimit > 0 ? Math.max(0, dailyLimit - todayTotals.tokens) : 0,
-      reset_timezone: SERVER_TIMEZONE,
+      unit: normalizeQuotaUnit(code),
+      reset_timezone: serialized.resetTimezone || serialized.reset_timezone || quota.resetTimezone || SERVER_TIMEZONE,
       next_reset_at: getNextResetAt(),
     },
     usage: {
@@ -813,6 +873,286 @@ function resolveUserApiCode(req) {
 function sendUserApiUnauthorized(res, message = "请先添加有效的 FogAct Key") {
   res.writeHead(401, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ success: false, message }));
+}
+
+function normalizeBillingType(code) {
+  const raw = String(code?.billingType || code?.billing_type || code?.quota?.billingType || code?.quota?.type || code?.type || "quota").toLowerCase();
+  if (["monthly", "duration", "subscription"].includes(raw)) return "duration";
+  if (["fixed", "quota", "balance"].includes(raw)) return "quota";
+  if (["count", "request", "requests"].includes(raw)) return "count";
+  return raw || "quota";
+}
+
+function normalizeCycleType(code) {
+  const raw = String(code?.cycleType || code?.cycle_type || code?.quota?.cycleType || code?.quota?.cycle || code?.quota?.type || code?.type || "fixed").toLowerCase();
+  if (["monthly", "month", "duration", "subscription"].includes(raw)) return "monthly";
+  if (["daily", "day"].includes(raw)) return "daily";
+  if (["fixed", "quota", "one-time", "onetime"].includes(raw)) return "fixed";
+  return raw || "fixed";
+}
+
+function normalizeQuotaUnit(code) {
+  return String(code?.quotaUnit || code?.quota_unit || code?.quota?.unit || "tokens").trim().toLowerCase() || "tokens";
+}
+
+function getCodeSubServiceType(code) {
+  return String(code?.subServiceType || code?.sub_service_type || code?.category || "").trim();
+}
+
+function getDailyQuota(code) {
+  return Number(code?.quota?.dailyQuota ?? code?.quota?.dailyLimit ?? code?.quota?.daily ?? 0);
+}
+
+function getTotalQuota(code) {
+  return Number(code?.quota?.total ?? code?.quota?.totalQuota ?? 0);
+}
+
+function getCodeDurationDays(code) {
+  const configured = Number(code?.durationDays ?? code?.validity?.days ?? code?.quota?.periodDays ?? 0);
+  if (Number.isFinite(configured) && configured > 0) return configured;
+  if (!code?.createdAt || !code?.expiresAt) return 0;
+
+  const start = new Date(code.createdAt).getTime();
+  const end = new Date(code.expiresAt).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0;
+  return (end - start) / 86400000;
+}
+
+function getCardSpec(code) {
+  const serialized = serializeCode(code);
+  return {
+    serviceType: serialized.serviceKey,
+    billingType: normalizeBillingType(code),
+    cycleType: normalizeCycleType(code),
+    quotaUnit: normalizeQuotaUnit(code),
+    resetTimezone: code?.resetTimezone || code?.reset_timezone || code?.quota?.resetTimezone || code?.quota?.reset_timezone || SERVER_TIMEZONE,
+    subServiceType: getCodeSubServiceType(code),
+    allowedModels: Array.isArray(serialized.allowedModels) ? serialized.allowedModels.map(String) : [],
+    dailyQuota: getDailyQuota(code),
+    totalQuota: getTotalQuota(code),
+    durationDays: getCodeDurationDays(code),
+  };
+}
+
+function isAllowedModelsCompatible(parentModels, childModels) {
+  if (!childModels.length) return true;
+  if (!parentModels.length) return false;
+  const parentSet = new Set(parentModels);
+  return childModels.every((model) => parentSet.has(model));
+}
+
+function addDays(date, days) {
+  return new Date(date.getTime() + days * 86400000);
+}
+
+function getMergeBaseDate(parentCode) {
+  const expiresAt = parentCode?.expiresAt ? new Date(parentCode.expiresAt) : null;
+  const now = new Date();
+  if (expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt > now) return expiresAt;
+  return now;
+}
+
+function validateCardMerge(parentCode, childCode) {
+  if (!parentCode) return { ok: false, message: "当前父卡不存在" };
+  if (!childCode) return { ok: false, message: "子卡不存在" };
+  if (parentCode.id === childCode.id) return { ok: false, message: "不能合并自己" };
+
+  const parentStatus = normalizeCodeStatus(parentCode);
+  const childStatus = normalizeCodeStatus(childCode);
+  if (parentStatus === "disabled") return { ok: false, message: "父卡已禁用，不能叠卡" };
+  if (parentStatus === "merged") return { ok: false, message: "父卡已注销，不能叠卡" };
+  if (!['active', 'expired'].includes(parentStatus)) return { ok: false, message: "父卡必须是活跃或已过期状态" };
+  if (childStatus !== "unused") return { ok: false, message: "子卡必须是未激活状态，不能使用已激活/已过期/已禁用卡" };
+  if (childCode.enabled === false) return { ok: false, message: "子卡已禁用，不能叠卡" };
+  if (childCode.usedBy || childCode.activatedAt || childCode.mergedInto) return { ok: false, message: "子卡必须是未激活且未使用的卡" };
+
+  const parentSpec = getCardSpec(parentCode);
+  const childSpec = getCardSpec(childCode);
+  const checks = [
+    ["serviceType", "服务类型不一致，Codex 和 Claude 不能互通额度"],
+    ["billingType", "计费类型不一致，时长/额度/次数不能混叠"],
+    ["cycleType", "周期类型不一致，月卡/日包/固定有效期不能混叠"],
+    ["quotaUnit", "额度单位不一致，token/次数/余额不能混用"],
+    ["subServiceType", "套餐类型不一致，暂不支持跨套餐叠卡"],
+  ];
+
+  for (const [field, message] of checks) {
+    if (parentSpec[field] !== childSpec[field]) return { ok: false, message };
+  }
+
+  if (parentSpec.resetTimezone !== "Asia/Shanghai" || childSpec.resetTimezone !== "Asia/Shanghai") {
+    return { ok: false, message: "叠卡只支持北京时间刷新额度" };
+  }
+
+  if (!isAllowedModelsCompatible(parentSpec.allowedModels, childSpec.allowedModels)) {
+    return { ok: false, message: "子卡模型权限不能超过父卡" };
+  }
+
+  return { ok: true, parentSpec, childSpec };
+}
+
+function previewCardMerge(parentCode, childCode) {
+  const validation = validateCardMerge(parentCode, childCode);
+  if (!validation.ok) return validation;
+
+  const { parentSpec, childSpec } = validation;
+  const oldExpiresAt = parentCode.expiresAt || null;
+  let addedDays = 0;
+  let addedQuota = 0;
+  let childTotalValue = 0;
+  let mergeMode = "quota_add";
+  let newExpiresAt = oldExpiresAt;
+
+  if (parentSpec.billingType === "duration") {
+    if (parentSpec.dailyQuota <= 0 || childSpec.dailyQuota <= 0 || childSpec.durationDays <= 0) {
+      return { ok: false, message: "周期卡必须配置每日额度和有效天数" };
+    }
+    childTotalValue = childSpec.dailyQuota * childSpec.durationDays;
+    addedDays = childTotalValue / parentSpec.dailyQuota;
+    mergeMode = parentSpec.dailyQuota === childSpec.dailyQuota ? "duration_equal" : "duration_value_convert";
+    newExpiresAt = addDays(getMergeBaseDate(parentCode), addedDays).toISOString();
+  } else if (parentSpec.billingType === "quota") {
+    addedQuota = childSpec.totalQuota;
+    addedDays = childSpec.durationDays;
+    if (addedQuota <= 0) return { ok: false, message: "额度卡必须配置可叠加总额度" };
+    if (addedDays > 0) newExpiresAt = addDays(getMergeBaseDate(parentCode), addedDays).toISOString();
+  } else if (parentSpec.billingType === "count") {
+    addedQuota = childSpec.totalQuota;
+    addedDays = childSpec.durationDays;
+    if (addedQuota <= 0) return { ok: false, message: "次数卡必须配置可叠加次数" };
+    if (addedDays > 0) newExpiresAt = addDays(getMergeBaseDate(parentCode), addedDays).toISOString();
+    mergeMode = "count_add";
+  } else {
+    return { ok: false, message: "暂不支持该计费类型叠卡" };
+  }
+
+  return {
+    ok: true,
+    parentSpec,
+    childSpec,
+    mergeMode,
+    oldExpiresAt,
+    newExpiresAt,
+    addedDays,
+    addedQuota,
+    childTotalValue,
+  };
+}
+
+function serializeMergeCode(code) {
+  if (!code) return null;
+  const data = serializeCodeForUserApi(code);
+  return {
+    id: code.id,
+    code: code.code,
+    key_preview: data?.key_preview || maskKey(code.code),
+    service_type: data?.service_type || getServiceKey(code.service),
+    sub_service_type_name: data?.sub_service_type_name || getCodeSubServiceType(code),
+    billing_type: data?.billing_type || normalizeBillingType(code),
+    cycle_type: normalizeCycleType(code),
+    quota_unit: normalizeQuotaUnit(code),
+    daily_quota: getDailyQuota(code),
+    total_quota: getTotalQuota(code),
+    status: data?.status || normalizeCodeStatus(code),
+    status_label: data?.status_label || getCodeStatusLabel(code.status),
+    expires_at: code.expiresAt || null,
+  };
+}
+
+function serializeMergeRecord(record) {
+  return {
+    id: record.id,
+    key_preview: maskKey(record.childCode),
+    child_code_id: record.childCodeId,
+    child_code: record.childCode,
+    status: "merged",
+    status_label: "已合并",
+    billing_type: record.billingType,
+    cycle_type: record.cycleType,
+    quota_unit: record.quotaUnit,
+    daily_quota: record.childDailyQuota,
+    total_quota: record.childTotalValue || record.addedQuota,
+    added_days: record.addedDays,
+    added_quota: record.addedQuota,
+    merge_mode: record.mergeMode,
+    created_at: record.createdAt,
+    expires_at: record.newExpiresAt,
+  };
+}
+
+function getCardMergeInfo(parentCode) {
+  const records = parentCode ? cardMergeDb.getByParent(parentCode.id) : [];
+  return {
+    success: true,
+    data: {
+      parent: serializeMergeCode(parentCode),
+      children: records.map(serializeMergeRecord).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)),
+      mode: "merge",
+      description: "子卡合并后会注销，额度或时长一次性转入当前卡。",
+    },
+  };
+}
+
+function mergeChildIntoParent(parentCode, childCode) {
+  const preview = previewCardMerge(parentCode, childCode);
+  if (!preview.ok) return preview;
+
+  const parentQuota = { ...(parentCode.quota || {}) };
+  const childQuota = { ...(childCode.quota || {}) };
+  const parentUpdates = {
+    status: normalizeCodeStatus(parentCode) === "expired" ? "active" : parentCode.status,
+    lastMergedAt: new Date().toISOString(),
+  };
+
+  if (preview.parentSpec.billingType === "duration") {
+    const parentDurationDays = Number(parentCode.durationDays || parentQuota.periodDays || 0);
+    parentQuota.total = Number(parentQuota.total || 0) + preview.childTotalValue;
+    parentQuota.periodDays = parentDurationDays + preview.addedDays;
+    parentUpdates.expiresAt = preview.newExpiresAt;
+    parentUpdates.durationDays = parentDurationDays + preview.addedDays;
+    parentUpdates.quota = parentQuota;
+  } else {
+    parentQuota.total = Number(parentQuota.total || 0) + preview.addedQuota;
+    parentUpdates.quota = parentQuota;
+    if (preview.newExpiresAt) parentUpdates.expiresAt = preview.newExpiresAt;
+  }
+
+  const updatedParent = codeDb.update(parentCode.id, parentUpdates);
+  const updatedChild = codeDb.update(childCode.id, {
+    status: "merged",
+    enabled: false,
+    mergedInto: parentCode.id,
+    mergedAt: new Date().toISOString(),
+    quota: {
+      ...childQuota,
+      used: Number(childQuota.total || 0),
+      merged: true,
+    },
+  });
+
+  const record = cardMergeDb.create({
+    parentCodeId: parentCode.id,
+    parentCode: parentCode.code,
+    childCodeId: childCode.id,
+    childCode: childCode.code,
+    serviceType: preview.parentSpec.serviceType,
+    subServiceType: preview.parentSpec.subServiceType,
+    billingType: preview.parentSpec.billingType,
+    cycleType: preview.parentSpec.cycleType,
+    quotaUnit: preview.parentSpec.quotaUnit,
+    timezone: "Asia/Shanghai",
+    mergeMode: preview.mergeMode,
+    parentDailyQuota: preview.parentSpec.dailyQuota,
+    childDailyQuota: preview.childSpec.dailyQuota,
+    childDays: preview.childSpec.durationDays,
+    childTotalValue: preview.childTotalValue,
+    addedDays: preview.addedDays,
+    addedQuota: preview.addedQuota,
+    oldExpiresAt: preview.oldExpiresAt,
+    newExpiresAt: preview.newExpiresAt,
+  });
+
+  return { ok: true, parent: updatedParent, child: updatedChild, record, preview };
 }
 
 function getCodeUsageRank(code) {
@@ -1496,7 +1836,7 @@ const server = http.createServer((req, res) => {
       for (const service of services) {
         for (let i = 0; i < count; i++) {
           const serviceKey = getServiceKey(service);
-          const newCode = codeDb.create({
+          const newCode = codeDb.create(withCodeSpec({
             ...(codeData.code && services.length === 1 && count === 1 ? { code: codeData.code } : {}),
             service,
             serviceKey,
@@ -1505,7 +1845,15 @@ const server = http.createServer((req, res) => {
             expiresAt,
             notes: codeData.notes || codeData.note,
             status: "unused",
-          });
+            type: codeData.type,
+            billingType: codeData.billingType,
+            cycleType: codeData.cycleType,
+            quotaUnit: codeData.quotaUnit,
+            resetTimezone: "Asia/Shanghai",
+            subServiceType: codeData.subServiceType,
+            category: codeData.category,
+            durationDays: codeData.duration,
+          }));
           createdCodes.push(serializeCode(newCode));
         }
       }
@@ -1533,6 +1881,13 @@ const server = http.createServer((req, res) => {
 
     const codeId = urlPath.split('/')[3];
     parseRequestBody(req).then((updates) => {
+      const existingCode = codeDb.getById(codeId);
+      if (!existingCode) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: '激活码不存在' }));
+        return;
+      }
+
       const payload = { ...updates };
       if (payload.service !== undefined) {
         payload.service = normalizeService(payload.service);
@@ -1542,13 +1897,22 @@ const server = http.createServer((req, res) => {
       if (payload.status !== undefined) {
         payload.status = normalizeCodeStatus(payload.status);
       }
+      const normalized = withCodeSpec({
+        ...existingCode,
+        ...payload,
+        quota: { ...(existingCode.quota || {}), ...(payload.quota || {}) },
+      });
+      Object.assign(payload, {
+        billingType: normalized.billingType,
+        cycleType: normalized.cycleType,
+        quotaUnit: normalized.quotaUnit,
+        resetTimezone: normalized.resetTimezone,
+        subServiceType: normalized.subServiceType,
+        category: normalized.category,
+        quota: normalized.quota,
+      });
 
       const updatedCode = codeDb.update(codeId, payload);
-      if (!updatedCode) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, message: '激活码不存在' }));
-        return;
-      }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, data: serializeCode(updatedCode) }));
@@ -1620,6 +1984,11 @@ const server = http.createServer((req, res) => {
       if (statusKey === 'expired') {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, message: '激活码已过期' }));
+        return;
+      }
+      if (statusKey === 'merged') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: '此激活码已合并注销，无法激活配置' }));
         return;
       }
 
@@ -1755,6 +2124,7 @@ const server = http.createServer((req, res) => {
     const usedCodes = codes.filter(c => normalizeCodeStatus(c) === 'active').length;
     const unusedCodes = codes.filter(c => normalizeCodeStatus(c) === 'unused').length;
     const expiredCodes = codes.filter(c => normalizeCodeStatus(c) === 'expired').length;
+    const mergedCodes = codes.filter(c => normalizeCodeStatus(c) === 'merged').length;
 
     const stats = {
       totalUsers,
@@ -1763,6 +2133,7 @@ const server = http.createServer((req, res) => {
       usedCodes,
       unusedCodes,
       expiredCodes,
+      mergedCodes,
       systemStatus: '运行正常',
       uptime: Math.floor(process.uptime() / 86400) + ' 天'
     };
@@ -1842,6 +2213,11 @@ const server = http.createServer((req, res) => {
         if (serializedCode.status === 'disabled') {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, valid: false, message: '此激活码已被禁用，无法激活配置' }));
+          return;
+        }
+        if (serializedCode.status === 'merged') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, valid: false, message: '此激活码已合并注销，无法激活配置' }));
           return;
         }
 
@@ -1959,14 +2335,97 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    // Lightweight fallbacks for optional user center actions.
+    // Card merge APIs: child cards are merged into the current parent card and then disabled.
     if (apiPath === "/card-bind/info" && req.method === "GET") {
+      const code = resolveUserApiCode(req);
+      if (!code) {
+        sendUserApiUnauthorized(res, "FogAct Key 不存在或已失效");
+        return;
+      }
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, data: { parent: null, children: [] } }));
+      res.end(JSON.stringify(getCardMergeInfo(code)));
       return;
     }
 
-    if (["/card-bind/bind", "/card-bind/unbind", "/card-bind/unbind-self", "/card-bind/reorder", "/renew/preview", "/renew/execute", "/quota-pack/redeem-preview", "/quota-pack/redeem"].includes(apiPath)) {
+    if (apiPath === "/card-bind/bind" && req.method === "POST") {
+      const parentCode = resolveUserApiCode(req);
+      if (!parentCode) {
+        sendUserApiUnauthorized(res, "FogAct Key 不存在或已失效");
+        return;
+      }
+
+      parseRequestBody(req).then((data) => {
+        const childKeys = Array.isArray(data.child_keys) ? data.child_keys : [];
+        if (!childKeys.length) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, message: '请输入要合并的子卡' }));
+          return;
+        }
+
+        const uniqueChildKeys = [...new Set(childKeys.map((key) => String(key || '').trim()).filter(Boolean))];
+        if (uniqueChildKeys.length !== childKeys.length) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, message: '子卡列表不能包含空值或重复卡' }));
+          return;
+        }
+
+        let previewParent = codeDb.getById(parentCode.id) || parentCode;
+        const childCodes = [];
+        for (const childKey of uniqueChildKeys) {
+          const childCode = codeDb.getByCode(childKey);
+          const preview = previewCardMerge(previewParent, childCode);
+          if (!preview.ok) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, message: preview.message }));
+            return;
+          }
+          childCodes.push(childCode);
+          previewParent = {
+            ...previewParent,
+            expiresAt: preview.newExpiresAt || previewParent.expiresAt,
+            quota: preview.parentSpec.billingType === "duration"
+              ? previewParent.quota
+              : { ...(previewParent.quota || {}), total: Number(previewParent.quota?.total || 0) + preview.addedQuota },
+            status: normalizeCodeStatus(previewParent) === "expired" ? "active" : previewParent.status,
+          };
+        }
+
+        const merged = [];
+        for (const childCode of childCodes) {
+          const result = mergeChildIntoParent(codeDb.getById(parentCode.id) || parentCode, childCode);
+          if (!result.ok) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, message: result.message }));
+            return;
+          }
+          merged.push(serializeMergeRecord(result.record));
+        }
+
+        const latestParent = codeDb.getById(parentCode.id);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          message: `成功合并 ${merged.length} 张子卡`,
+          data: {
+            parent: serializeCodeForUserApi(latestParent),
+            children: merged,
+          },
+        }));
+      }).catch(() => {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: '请求格式错误' }));
+      });
+      return;
+    }
+
+    if (["/card-bind/unbind", "/card-bind/unbind-self", "/card-bind/reorder"].includes(apiPath)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: '叠卡合并后子卡会注销，不支持解绑或排序' }));
+      return;
+    }
+
+    if (["/renew/preview", "/renew/execute", "/quota-pack/redeem-preview", "/quota-pack/redeem"].includes(apiPath)) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, data: null, message: '操作已提交' }));
       return;

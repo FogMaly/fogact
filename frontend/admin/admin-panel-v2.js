@@ -174,9 +174,19 @@ function getCodeStatusMeta(code) {
     active: { label: code.statusLabel || '活跃', className: 'bg-green-50 text-green-700' },
     used: { label: code.statusLabel || '活跃', className: 'bg-green-50 text-green-700' },
     disabled: { label: code.statusLabel || '已禁用', className: 'bg-error-container text-on-error-container' },
-    expired: { label: code.statusLabel || '已过期', className: 'bg-error-container text-on-error-container' }
+    expired: { label: code.statusLabel || '已过期', className: 'bg-error-container text-on-error-container' },
+    merged: { label: code.statusLabel || '已注销', className: 'bg-surface-container-high text-on-surface-variant' }
   };
   return meta[key] || meta.unused;
+}
+
+function getCodeBillingLabel(code) {
+  const billingType = code.billingType || code.quota?.billingType || code.quota?.type || code.type || 'quota';
+  const cycleType = code.cycleType || code.quota?.cycleType || code.quota?.type || code.type || 'fixed';
+  const unit = code.quotaUnit || code.quota?.unit || 'tokens';
+  const billingLabel = { duration: '周期卡', monthly: '周期卡', quota: '额度卡', fixed: '额度卡', count: '次数卡' }[billingType] || billingType;
+  const cycleLabel = { monthly: '月度', daily: '日包', fixed: '固定' }[cycleType] || cycleType;
+  return `${billingLabel} · ${cycleLabel} · ${unit}`;
 }
 
 function clone(value) {
@@ -474,7 +484,7 @@ const Dashboard = {
       { label: '总用户数', value: stats.totalUsers || 0, icon: 'group', color: 'primary', sub: '全部用户' },
       { label: '活跃用户', value: stats.activeUsers || 0, icon: 'trending_up', color: 'tertiary', sub: '当前活跃状态' },
       { label: '总激活码', value: stats.totalCodes || 0, icon: 'key', color: 'secondary', sub: `未激活 ${stats.unusedCodes || 0}` },
-      { label: '已过期', value: stats.expiredCodes || 0, icon: 'schedule', color: 'error', sub: stats.systemStatus || '运行正常' }
+      { label: '已过期', value: stats.expiredCodes || 0, icon: 'schedule', color: 'error', sub: `已注销 ${stats.mergedCodes || 0}` }
     ];
 
     const container = document.querySelector('#dashboard-panel .grid');
@@ -779,6 +789,7 @@ const CodeManagement = {
           <tr class="bg-surface-container-high">
             <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">激活码</th>
             <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">服务类型</th>
+            <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">叠卡规格</th>
             <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">状态</th>
             <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">创建时间</th>
             <th class="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">过期时间</th>
@@ -799,6 +810,10 @@ const CodeManagement = {
                   </div>
                 </td>
                 <td class="px-4 py-3 text-sm text-on-surface-variant">${escapeHtml(code.serviceLabel || code.service)}</td>
+                <td class="px-4 py-3 text-xs text-on-surface-variant">
+                  <div>${escapeHtml(getCodeBillingLabel(code))}</div>
+                  <div class="mt-1 opacity-70">${escapeHtml(code.subServiceType || code.sub_service_type || code.category || '标准运营')}</div>
+                </td>
                 <td class="px-4 py-3"><span class="px-2 py-1 rounded-lg text-xs font-medium ${status.className}">${status.label}</span></td>
                 <td class="px-4 py-3 text-sm text-on-surface-variant">${formatDate(code.createdAt)}</td>
                 <td class="px-4 py-3 text-sm text-on-surface-variant">${formatDate(code.expiresAt)}</td>
@@ -996,6 +1011,26 @@ const CodeManagement = {
           </select>
         </div>
 
+        <!-- 叠卡规格 -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-on-surface mb-2">套餐类型</label>
+            <input id="code-sub-service-type" type="text" value="标准运营" class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-on-surface mb-2">额度单位</label>
+            <select id="code-quota-unit" class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none">
+              <option value="tokens">tokens</option>
+              <option value="requests">requests</option>
+              <option value="balance">统一余额</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-on-surface mb-2">刷新时区</label>
+            <input value="Asia/Shanghai" disabled class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none opacity-80" />
+          </div>
+        </div>
+
         <!-- 服务渠道 -->
         <div>
           <label class="block text-sm font-medium text-on-surface mb-2">服务渠道</label>
@@ -1108,7 +1143,40 @@ const CodeManagement = {
             <option value="active" ${code.status === 'active' || code.status === 'used' ? 'selected' : ''}>活跃</option>
             <option value="disabled" ${code.status === 'disabled' ? 'selected' : ''}>已禁用</option>
             <option value="expired" ${code.status === 'expired' ? 'selected' : ''}>已过期</option>
+            <option value="merged" ${code.status === 'merged' ? 'selected' : ''}>已注销</option>
           </select>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-on-surface mb-2">计费类型</label>
+            <select id="edit-code-billing-type" class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none">
+              <option value="duration" ${(code.billingType || code.quota?.billingType || code.quota?.type) === 'duration' || code.quota?.type === 'monthly' ? 'selected' : ''}>周期卡</option>
+              <option value="quota" ${(code.billingType || code.quota?.billingType || code.quota?.type || 'quota') === 'quota' || code.quota?.type === 'fixed' ? 'selected' : ''}>额度卡</option>
+              <option value="count" ${(code.billingType || code.quota?.billingType) === 'count' ? 'selected' : ''}>次数卡</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-on-surface mb-2">周期类型</label>
+            <select id="edit-code-cycle-type" class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none">
+              <option value="monthly" ${(code.cycleType || code.quota?.cycleType || code.quota?.type) === 'monthly' ? 'selected' : ''}>月度</option>
+              <option value="daily" ${(code.cycleType || code.quota?.cycleType) === 'daily' ? 'selected' : ''}>日包</option>
+              <option value="fixed" ${(code.cycleType || code.quota?.cycleType || code.quota?.type || 'fixed') === 'fixed' ? 'selected' : ''}>固定</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-on-surface mb-2">套餐类型</label>
+            <input id="edit-code-sub-service-type" type="text" value="${escapeHtml(code.subServiceType || code.sub_service_type || code.category || '标准运营')}" class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-on-surface mb-2">额度单位</label>
+            <select id="edit-code-quota-unit" class="w-full px-4 py-2 bg-surface-container-low border-none rounded-xl text-sm outline-none">
+              <option value="tokens" ${(code.quotaUnit || code.quota?.unit || 'tokens') === 'tokens' ? 'selected' : ''}>tokens</option>
+              <option value="requests" ${(code.quotaUnit || code.quota?.unit) === 'requests' ? 'selected' : ''}>requests</option>
+              <option value="balance" ${(code.quotaUnit || code.quota?.unit) === 'balance' ? 'selected' : ''}>统一余额</option>
+            </select>
+          </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-on-surface mb-2">过期时间</label>
@@ -1136,7 +1204,9 @@ const CodeManagement = {
     const serviceCheckboxes = document.querySelectorAll('.service-checkbox:checked');
     const services = lockedService ? [lockedService.label] : Array.from(serviceCheckboxes).map(cb => cb.value);
     const count = parseInt(document.getElementById('code-count').value, 10);
-    const note = document.getElementById('code-note').value.trim();
+      const note = document.getElementById('code-note').value.trim();
+      const subServiceType = document.getElementById('code-sub-service-type').value.trim() || '标准运营';
+      const quotaUnit = document.getElementById('code-quota-unit').value || 'tokens';
 
     if (!services.length) {
       UI.showNotification('请至少选择一个服务渠道', 'error');
@@ -1172,11 +1242,23 @@ const CodeManagement = {
         duration: durationMonths * 30,
         quota: {
           type: 'monthly',
+          billingType: 'duration',
+          cycleType: 'monthly',
+          unit: quotaUnit,
+          resetTimezone: 'Asia/Shanghai',
           dailyQuota,
+          dailyLimit: dailyQuota,
           refreshTime,
           used: 0,
-          total: dailyQuota
-        }
+          total: dailyQuota * durationMonths * 30,
+          periodDays: durationMonths * 30
+        },
+        billingType: 'duration',
+        cycleType: 'monthly',
+        quotaUnit,
+        resetTimezone: 'Asia/Shanghai',
+        subServiceType,
+        category: subServiceType
       };
     } else {
       const totalQuota = parseInt(document.getElementById('code-total-quota').value, 10);
@@ -1196,9 +1278,19 @@ const CodeManagement = {
         duration: durationDays,
         quota: {
           type: 'fixed',
+          billingType: 'quota',
+          cycleType: 'fixed',
+          unit: quotaUnit,
+          resetTimezone: 'Asia/Shanghai',
           total: totalQuota,
           used: 0
-        }
+        },
+        billingType: 'quota',
+        cycleType: 'fixed',
+        quotaUnit,
+        resetTimezone: 'Asia/Shanghai',
+        subServiceType,
+        category: subServiceType
       };
     }
 
@@ -1224,11 +1316,27 @@ const CodeManagement = {
 
   async updateCode(id) {
     const expiresAt = document.getElementById('edit-code-expire').value;
+    const billingType = document.getElementById('edit-code-billing-type').value;
+    const cycleType = document.getElementById('edit-code-cycle-type').value;
+    const quotaUnit = document.getElementById('edit-code-quota-unit').value;
+    const subServiceType = document.getElementById('edit-code-sub-service-type').value.trim() || '标准运营';
     const payload = {
       service: getActiveServiceOption()?.label || document.getElementById('edit-code-service').value,
       status: document.getElementById('edit-code-status').value,
       expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
-      notes: document.getElementById('edit-code-note').value.trim()
+      notes: document.getElementById('edit-code-note').value.trim(),
+      billingType,
+      cycleType,
+      quotaUnit,
+      resetTimezone: 'Asia/Shanghai',
+      subServiceType,
+      category: subServiceType,
+      quota: {
+        billingType,
+        cycleType,
+        unit: quotaUnit,
+        resetTimezone: 'Asia/Shanghai'
+      }
     };
 
     try {

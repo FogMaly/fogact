@@ -52,9 +52,11 @@ try {
     best &&
     best.url === "https://node2.example.com" &&
     best.latency === 80 &&
-    table.includes("状态 节点") &&
+    table.includes("节点测试结果") &&
     table.includes("★ 最优") &&
-    table.includes("推荐节点")
+    table.includes("测试完成，共 2 个节点，1 个可用") &&
+    !table.includes("推荐节点") &&
+    !table.includes("状态 节点")
   ) {
     console.log("✓ Node selection works correctly");
   } else {
