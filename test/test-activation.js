@@ -168,6 +168,7 @@ console.log("Test 6: Interactive menu key parsing...");
 try {
   const {
     applyMenuInput,
+    clearScreen,
     enterFixedMenuScreen,
     leaveFixedMenuScreen,
     renderMenu,
@@ -182,6 +183,7 @@ try {
   const writes = [];
   const fakeTty = { isTTY: true, write: (value) => writes.push(value) };
   enterFixedMenuScreen(fakeTty);
+  clearScreen(fakeTty);
   leaveFixedMenuScreen(fakeTty);
 
   if (
@@ -193,14 +195,15 @@ try {
     !shouldUseFixedMenuScreen({ TERM: "xterm-256color" }, fakeTty) ||
     shouldUseFixedMenuScreen({ TERM: "dumb" }, fakeTty) ||
     !writes[0].includes("\u001b[?1049h") ||
-    !writes[1].includes("\u001b[?1049l") ||
+    !writes[1].includes("\u001b[H\u001b[2J") ||
+    !writes[2].includes("\u001b[?1049l") ||
     typeof waitForMenuReturn !== "function" ||
     !menu.includes("\u001b[34m2. 测试节点\u001b[0m")
   ) {
     console.log("✗ Interactive menu key parsing failed");
     process.exit(1);
   }
-  console.log("✓ Interactive menu handles repeated arrows and shortcuts");
+  console.log("✓ Interactive menu handles repeated arrows, shortcuts, and cleanup");
 } catch (err) {
   console.log("✗ Interactive menu key parsing test failed:", err.message);
   process.exit(1);
