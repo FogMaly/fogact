@@ -33,7 +33,7 @@ console.log("");
 // Test 2: Node selection logic
 console.log("Test 2: Node selection logic...");
 try {
-  const { selectBestNode, formatNodeResults } = require("../lib/services/node-service.js");
+  const { selectBestNode, formatNodeResults, stabilityLabel } = require("../lib/services/node-service.js");
 
   const mockResults = [
     { url: "https://node1.example.com", available: true, latency: 150 },
@@ -70,7 +70,8 @@ try {
     colorTable.includes("\u001b[33m") &&
     colorTable.includes("\u001b[31m") &&
     colorTable.includes("\u001b[33m★ 最优\u001b[0m") &&
-    colorTable.includes("\u001b[31m不可达\u001b[0m")
+    colorTable.includes("\u001b[31m不可达\u001b[0m") &&
+    stabilityLabel(40) === "波动"
   ) {
     console.log("✓ Node selection works correctly");
   } else {
@@ -218,13 +219,16 @@ try {
 // Test 6c: Activation profile formatting
 console.log("Test 6c: Activation profile formatting...");
 try {
-  const { formatQuotaValue, getQuotaInfo, progressBar } = require("../lib/services/activation-orchestrator.js");
+  const { formatNodeChoice, formatQuotaValue, getQuotaInfo, progressBar } = require("../lib/services/activation-orchestrator.js");
   const quota = getQuotaInfo({ raw: { quota: { daily_quota: 260, daily_spent: 247.33, unit: "balance" } } });
+  const nodeChoice = formatNodeChoice({ name: "CF国外节点1", available: true, avgLatency: 11, latencyStdDev: 475, score: 74 });
   if (
     quota.progress !== 95 ||
     formatQuotaValue(quota.daily, quota.unit) !== "$260.00" ||
     formatQuotaValue(quota.remaining, quota.unit) !== "$12.67" ||
-    !progressBar(95).includes("95%")
+    !progressBar(95).includes("95%") ||
+    !nodeChoice.includes("CF国外节点1") ||
+    !nodeChoice.includes("波动")
   ) {
     console.log("✗ Activation profile formatting failed");
     process.exit(1);
