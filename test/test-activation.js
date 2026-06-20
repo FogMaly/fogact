@@ -88,9 +88,13 @@ console.log("");
 // Test 3: Backup service
 console.log("Test 3: Backup service...");
 try {
-  const { listBackups } = require("../lib/services/backup-service.js");
+  const { listBackups, MAX_BACKUPS_PER_SERVICE, pruneBackups, getPathSize } = require("../lib/services/backup-service.js");
 
   const backups = listBackups();
+  if (MAX_BACKUPS_PER_SERVICE !== 5 || typeof pruneBackups !== "function" || getPathSize(__filename) <= 0) {
+    console.log("✗ Backup service retention helpers failed");
+    process.exit(1);
+  }
   console.log(`✓ Backup service works (found ${backups.length} backups)`);
 } catch (err) {
   console.log("✗ Backup service test failed:", err.message);
@@ -322,17 +326,63 @@ try {
 // Test 6b: Backup display formatting
 console.log("Test 6b: Backup display formatting...");
 try {
-  const { formatBackupTitle } = require("../lib/commands/restore.js");
-  const title = formatBackupTitle({
+  const {
+    formatBackupFilesSummary,
+    formatBackupTitle,
+    formatFileSize,
+    getBackupNodeLabel,
+    printBackupDetail,
+    printBackupList,
+    printRestoreResult,
+  } = require("../lib/commands/restore.js");
+  const backup = {
     service: "codex",
     timestamp: "2026-06-19T12:00:00.000Z",
-    files: [{ originalPath: "/tmp/config.toml" }, { originalPath: "/tmp/auth.json" }],
-  });
-  if (!title.includes("Codex") || !title.includes("2 个文件")) {
+    nodeName: "CF国外节点1",
+    totalSize: 1536,
+    path: "/tmp/fogact-backup",
+    files: [
+      { originalPath: "/root/.codex/config.toml", backupName: "config.toml", size: 512 },
+      { originalPath: "/root/.codex/auth.json", backupName: "auth.json", size: 1024 },
+    ],
+  };
+  const title = formatBackupTitle(backup);
+  const originalForceColor = process.env.FORCE_COLOR;
+  process.env.FORCE_COLOR = "1";
+  const originalLog = console.log;
+  const lines = [];
+  console.log = (value = "") => lines.push(String(value));
+  try {
+    printBackupList([backup], "codex");
+    printBackupDetail(backup);
+    printRestoreResult(true, ["/root/.codex/config.toml"], "codex");
+  } finally {
+    console.log = originalLog;
+    if (originalForceColor === undefined) delete process.env.FORCE_COLOR;
+    else process.env.FORCE_COLOR = originalForceColor;
+  }
+  const output = lines.join("\n");
+  if (
+    !title.includes("CF国外节点1") ||
+    formatBackupFilesSummary(backup) !== "config.toml, auth.json" ||
+    formatFileSize(1536) !== "1.5 KB" ||
+    getBackupNodeLabel({}) !== "(激活前原始状态)" ||
+    !output.includes("Codex 备份列表") ||
+    !output.includes("节点:") ||
+    !output.includes("文件:") ||
+    !output.includes("大小:") ||
+    !output.includes("共 1 个备份") ||
+    !output.includes("备份详情") ||
+    !output.includes("将恢复以下文件") ||
+    !output.includes("备份已恢复") ||
+    !output.includes("请重启 Codex / VSCode / Cursor / OpenCode") ||
+    !output.includes("\u001b[33m") ||
+    !output.includes("\u001b[35m")
+  ) {
     console.log("✗ Backup display formatting failed");
     process.exit(1);
   }
-  console.log("✓ Backup display formatting works correctly");
+  console.log("✓ Backup display formatting matches yunyi-style output");
 } catch (err) {
   console.log("✗ Backup display formatting test failed:", err.message);
   process.exit(1);
