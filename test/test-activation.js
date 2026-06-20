@@ -175,11 +175,15 @@ try {
     enterFixedMenuScreen,
     leaveFixedMenuScreen,
     renderMenu,
+    shouldReturnFromMenuWait,
     shouldUseFixedMenuScreen,
+    stripIgnoredReturnInput,
     waitForMenuReturn,
   } = require("../lib/index.js");
   const repeated = applyMenuInput("\u001b[B\u001b[B\u001b[A", 0, 4);
   const wheelIgnored = applyMenuInput("\u001b[<64;20;10M\u001b[<64;20;10m", 1, 4);
+  const legacyWheelIgnored = applyMenuInput("\u001b[M`!!\u001b[M`!!", 2, 4);
+  const urxvtWheelIgnored = applyMenuInput("\u001b[64;20;10M\u001b[65;20;10M", 3, 4);
   const wrapped = applyMenuInput("\u001b[A", 0, 4);
   const numberSelect = applyMenuInput("3", 0, 4);
   const enter = applyMenuInput("\r", 2, 4);
@@ -204,6 +208,14 @@ try {
     repeated.cursor !== 1 ||
     wheelIgnored.cursor !== 1 ||
     wheelIgnored.action !== null ||
+    legacyWheelIgnored.cursor !== 2 ||
+    legacyWheelIgnored.action !== null ||
+    urxvtWheelIgnored.cursor !== 3 ||
+    urxvtWheelIgnored.action !== null ||
+    shouldReturnFromMenuWait("\u001b[<64;20;10M\u001b[<65;20;10M") ||
+    shouldReturnFromMenuWait("\u001b[A\u001b[B") ||
+    !shouldReturnFromMenuWait("\u001b[<64;20;10M\r") ||
+    stripIgnoredReturnInput("\u001b[<64;20;10Mabc\u001b[A") !== "abc" ||
     wrapped.cursor !== 3 ||
     numberSelect.cursor !== 2 ||
     numberSelect.action !== "submit" ||
@@ -213,7 +225,11 @@ try {
     !writes[0].includes("\u001b[?1049h") ||
     !writes[1].includes("\u001b[H\u001b[2J\u001b[3J") ||
     !writes.some((value) => value.includes("\u001b[?1000h")) ||
+    !writes.some((value) => value.includes("\u001b[?1002h")) ||
+    !writes.some((value) => value.includes("\u001b[?1007l")) ||
     !writes.some((value) => value.includes("\u001b[?1000l")) ||
+    !writes.some((value) => value.includes("\u001b[?1002l")) ||
+    !writes.some((value) => value.includes("\u001b[?1007h")) ||
     !writes.some((value) => value.includes("\u001b[?1049l")) ||
     typeof waitForMenuReturn !== "function" ||
     !menu.includes("❯ \u001b[36m1. 激活服务\u001b[0m") ||
