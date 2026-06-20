@@ -170,6 +170,8 @@ try {
   const {
     applyMenuInput,
     clearScreen,
+    disableMenuMouseCapture,
+    enableMenuMouseCapture,
     enterFixedMenuScreen,
     leaveFixedMenuScreen,
     renderMenu,
@@ -177,6 +179,7 @@ try {
     waitForMenuReturn,
   } = require("../lib/index.js");
   const repeated = applyMenuInput("\u001b[B\u001b[B\u001b[A", 0, 4);
+  const wheelIgnored = applyMenuInput("\u001b[<64;20;10M\u001b[<64;20;10m", 1, 4);
   const wrapped = applyMenuInput("\u001b[A", 0, 4);
   const numberSelect = applyMenuInput("3", 0, 4);
   const enter = applyMenuInput("\r", 2, 4);
@@ -184,11 +187,15 @@ try {
   const writes = [];
   const fakeTty = { isTTY: true, write: (value) => writes.push(value) };
   enterFixedMenuScreen(fakeTty);
+  enableMenuMouseCapture(fakeTty);
   clearScreen(fakeTty);
+  disableMenuMouseCapture(fakeTty);
   leaveFixedMenuScreen(fakeTty);
 
   if (
     repeated.cursor !== 1 ||
+    wheelIgnored.cursor !== 1 ||
+    wheelIgnored.action !== null ||
     wrapped.cursor !== 3 ||
     numberSelect.cursor !== 2 ||
     numberSelect.action !== "submit" ||
@@ -196,8 +203,10 @@ try {
     !shouldUseFixedMenuScreen({ TERM: "xterm-256color" }, fakeTty) ||
     shouldUseFixedMenuScreen({ TERM: "dumb" }, fakeTty) ||
     !writes[0].includes("\u001b[?1049h") ||
-    !writes[1].includes("\u001b[H\u001b[2J") ||
-    !writes[2].includes("\u001b[?1049l") ||
+    !writes[1].includes("\u001b[H\u001b[2J\u001b[3J") ||
+    !writes.some((value) => value.includes("\u001b[?1000h")) ||
+    !writes.some((value) => value.includes("\u001b[?1000l")) ||
+    !writes.some((value) => value.includes("\u001b[?1049l")) ||
     typeof waitForMenuReturn !== "function" ||
     !menu.includes("❯ \u001b[36m1. 激活服务\u001b[0m") ||
     menu.includes("\u001b[36m2. 测试节点\u001b[0m")
@@ -342,10 +351,12 @@ console.log("");
 // Test 9: Codex proxy config generation
 console.log("Test 9: Codex proxy config generation...");
 try {
-  const { buildCodexConfig } = require("../lib/config/codex.js");
+  const { buildCodexConfig, FOGACT_MODEL } = require("../lib/config/codex.js");
   const config = buildCodexConfig('model = "old"\n[profiles.default]\nmodel = "keep"', 'https://cliproxy.fogidc.com/v1', 'FOGACT-TEST-CODE');
   if (
     config.includes('model_provider = "fogact"') &&
+    config.includes(`model = "${FOGACT_MODEL}"`) &&
+    FOGACT_MODEL === "gpt-5.5" &&
     config.includes('base_url = "https://cliproxy.fogidc.com/v1"') &&
     config.includes('experimental_bearer_token = "FOGACT-TEST-CODE"') &&
     config.includes('[profiles.default]')
@@ -357,6 +368,31 @@ try {
   }
 } catch (err) {
   console.log("✗ Codex proxy config generation test failed:", err.message);
+  process.exit(1);
+}
+
+console.log("");
+
+// Test 9b: Optional Codex platform models
+console.log("Test 9b: Optional Codex platform models...");
+try {
+  const { FOGACT_MODEL } = require("../lib/config/codex.js");
+  const { buildCodexConfig: buildOpenCodeCodexConfig } = require("../lib/platforms/opencode.js");
+  const { buildCodexConfig: buildOpenClawCodexConfig } = require("../lib/platforms/openclaw.js");
+  const openCodeConfig = buildOpenCodeCodexConfig({}, "https://cliproxy.fogidc.com/v1", "FOGACT-TEST-CODE");
+  const openClawConfig = buildOpenClawCodexConfig({}, "https://cliproxy.fogidc.com/v1", "FOGACT-TEST-CODE");
+
+  if (
+    openCodeConfig.model !== `openai/${FOGACT_MODEL}` ||
+    openClawConfig.models.providers["fogact-codex"].models[0].id !== FOGACT_MODEL ||
+    openClawConfig.agents.defaults.model.primary !== `fogact-codex/${FOGACT_MODEL}`
+  ) {
+    console.log("✗ Optional Codex platform model defaults failed");
+    process.exit(1);
+  }
+  console.log("✓ Optional Codex platform models use latest default");
+} catch (err) {
+  console.log("✗ Optional Codex platform model test failed:", err.message);
   process.exit(1);
 }
 
