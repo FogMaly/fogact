@@ -183,7 +183,15 @@ try {
   const wrapped = applyMenuInput("\u001b[A", 0, 4);
   const numberSelect = applyMenuInput("3", 0, 4);
   const enter = applyMenuInput("\r", 2, 4);
+  const previousForceColor = process.env.FORCE_COLOR;
+  process.env.FORCE_COLOR = "1";
   const menu = renderMenu(0);
+  const secondMenu = renderMenu(1);
+  if (previousForceColor === undefined) {
+    delete process.env.FORCE_COLOR;
+  } else {
+    process.env.FORCE_COLOR = previousForceColor;
+  }
   const writes = [];
   const fakeTty = { isTTY: true, write: (value) => writes.push(value) };
   enterFixedMenuScreen(fakeTty);
@@ -214,7 +222,6 @@ try {
     console.log("✗ Interactive menu key parsing failed");
     process.exit(1);
   }
-  const secondMenu = renderMenu(1);
   if (!secondMenu.includes("❯ \u001b[36m2. 测试节点\u001b[0m") || secondMenu.includes("\u001b[36m1. 激活服务\u001b[0m")) {
     console.log("✗ Interactive menu selected highlight failed");
     process.exit(1);
@@ -229,15 +236,26 @@ try {
 console.log("Test 6c: Activation profile formatting...");
 try {
   const { formatNodeChoice, formatQuotaValue, getQuotaInfo, progressBar } = require("../lib/services/activation-orchestrator.js");
+  const previousForceColor = process.env.FORCE_COLOR;
+  process.env.FORCE_COLOR = "1";
   const quota = getQuotaInfo({ raw: { quota: { daily_quota: 260, daily_spent: 247.33, unit: "balance" } } });
   const nodeChoice = formatNodeChoice({ name: "CF国外节点1", available: true, avgLatency: 11, latencyStdDev: 475, score: 74 });
+  const bar = progressBar(95);
+  if (previousForceColor === undefined) {
+    delete process.env.FORCE_COLOR;
+  } else {
+    process.env.FORCE_COLOR = previousForceColor;
+  }
   if (
     quota.progress !== 95 ||
     formatQuotaValue(quota.daily, quota.unit) !== "$260.00" ||
     formatQuotaValue(quota.remaining, quota.unit) !== "$12.67" ||
-    !progressBar(95).includes("95%") ||
+    !bar.includes("95%") ||
+    !bar.includes("\u001b[32m") ||
+    !bar.includes("\u001b[90m") ||
     !nodeChoice.includes("CF国外节点1") ||
-    !nodeChoice.includes("波动")
+    !nodeChoice.includes("波动") ||
+    !nodeChoice.includes("\u001b[32m11ms\u001b[0m")
   ) {
     console.log("✗ Activation profile formatting failed");
     process.exit(1);
