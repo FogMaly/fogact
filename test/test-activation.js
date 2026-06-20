@@ -198,14 +198,40 @@ try {
     !writes[1].includes("\u001b[H\u001b[2J") ||
     !writes[2].includes("\u001b[?1049l") ||
     typeof waitForMenuReturn !== "function" ||
-    !menu.includes("\u001b[34m2. 测试节点\u001b[0m")
+    !menu.includes("❯ \u001b[36m1. 激活服务\u001b[0m") ||
+    menu.includes("\u001b[36m2. 测试节点\u001b[0m")
   ) {
     console.log("✗ Interactive menu key parsing failed");
     process.exit(1);
   }
-  console.log("✓ Interactive menu handles repeated arrows, shortcuts, and cleanup");
+  const secondMenu = renderMenu(1);
+  if (!secondMenu.includes("❯ \u001b[36m2. 测试节点\u001b[0m") || secondMenu.includes("\u001b[36m1. 激活服务\u001b[0m")) {
+    console.log("✗ Interactive menu selected highlight failed");
+    process.exit(1);
+  }
+  console.log("✓ Interactive menu handles repeated arrows, shortcuts, cleanup, and selected highlight");
 } catch (err) {
   console.log("✗ Interactive menu key parsing test failed:", err.message);
+  process.exit(1);
+}
+
+// Test 6c: Activation profile formatting
+console.log("Test 6c: Activation profile formatting...");
+try {
+  const { formatQuotaValue, getQuotaInfo, progressBar } = require("../lib/services/activation-orchestrator.js");
+  const quota = getQuotaInfo({ raw: { quota: { daily_quota: 260, daily_spent: 247.33, unit: "balance" } } });
+  if (
+    quota.progress !== 95 ||
+    formatQuotaValue(quota.daily, quota.unit) !== "$260.00" ||
+    formatQuotaValue(quota.remaining, quota.unit) !== "$12.67" ||
+    !progressBar(95).includes("95%")
+  ) {
+    console.log("✗ Activation profile formatting failed");
+    process.exit(1);
+  }
+  console.log("✓ Activation profile formatting matches yunyi-style quota summary");
+} catch (err) {
+  console.log("✗ Activation profile formatting test failed:", err.message);
   process.exit(1);
 }
 
