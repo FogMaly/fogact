@@ -239,6 +239,38 @@ try {
   process.exit(1);
 }
 
+// Test 6d: Activation final summary formatting
+console.log("Test 6d: Activation final summary formatting...");
+try {
+  const { printResultSummary } = require("../lib/services/activation-orchestrator.js");
+  const originalLog = console.log;
+  const lines = [];
+  console.log = (value = "") => lines.push(String(value));
+  try {
+    printResultSummary("claude", null, [
+      { platform: { id: "claude-code", name: "Claude Code" }, result: { success: true, files: ["/root/.claude/settings.json", "/root/.claude.json"] } },
+      { platform: { id: "opencode", name: "OpenCode" }, result: { success: false, skipped: true } },
+      { platform: { id: "openclaw", name: "OpenClaw" }, result: { success: false, skipped: true } },
+    ]);
+  } finally {
+    console.log = originalLog;
+  }
+  const output = lines.join("\n");
+  if (
+    !output.includes("✓ Claude Code 已激活") ||
+    !output.includes("配置: ") ||
+    !output.includes("已跳过 OpenCode 配置") ||
+    !output.includes("请重启 Claude Code 以应用新配置")
+  ) {
+    console.log("✗ Activation final summary formatting failed");
+    process.exit(1);
+  }
+  console.log("✓ Activation final summary matches yunyi-style output");
+} catch (err) {
+  console.log("✗ Activation final summary formatting test failed:", err.message);
+  process.exit(1);
+}
+
 // Test 6b: Backup display formatting
 console.log("Test 6b: Backup display formatting...");
 try {
