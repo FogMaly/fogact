@@ -6,6 +6,7 @@ GITHUB_REPO="${FOGACT_GITHUB_REPO:-FogMaly/fogact}"
 GIT_REF="${FOGACT_GIT_REF:-main}"
 INSTALL_METHOD="${FOGACT_INSTALL_METHOD:-npm}"
 INSTALL_DIR="${FOGACT_INSTALL_DIR:-}"
+INSTALL_CODEX="${FOGACT_INSTALL_CODEX:-1}"
 SERVICE="${FOGACT_SERVICE:-}"
 CODE="${FOGACT_CODE:-}"
 API_KEY="${NEWAPI_API_KEY:-${FOGACT_API_KEY:-}}"
@@ -50,12 +51,13 @@ Options:
   --systemd                      Create and start a systemd Web UI service
   --method <npm|github>          Install from npm package or GitHub source
   --install-dir <path>           GitHub source install directory
+  --no-codex                     Do not install Codex CLI when missing
   -h, --help                     Show help
 
 Environment variables mirror the options:
   FOGACT_PACKAGE=fogact, FOGACT_SERVICE, FOGACT_CODE, NEWAPI_BASE_URL, NEWAPI_API_KEY,
   FOGACT_API_BASE, FOGACT_PLATFORMS, FOGACT_ALL=1,
-  FOGACT_SKIP_VERIFY=1, FOGACT_RUN_WEB=1, FOGACT_SYSTEMD=1
+  FOGACT_SKIP_VERIFY=1, FOGACT_RUN_WEB=1, FOGACT_SYSTEMD=1, FOGACT_INSTALL_CODEX=0
 EOF
 }
 
@@ -75,6 +77,7 @@ while [ "$#" -gt 0 ]; do
     --systemd) CREATE_SYSTEMD=1; RUN_WEB=1; shift ;;
     --method) INSTALL_METHOD="${2:-}"; shift 2 ;;
     --install-dir) INSTALL_DIR="${2:-}"; shift 2 ;;
+    --no-codex) INSTALL_CODEX=0; shift ;;
     -h|--help) usage; exit 0 ;;
     *) fail "Unknown option: $1" ;;
   esac
@@ -240,6 +243,37 @@ ensure_global_npm_prefix() {
   shell_rc="${HOME:-}/.profile"
   if [ -n "${HOME:-}" ] && [ -f "$shell_rc" ] && ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$shell_rc" 2>/dev/null; then
     printf '\n# FogAct npm global binaries\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$shell_rc" || true
+  fi
+}
+
+ensure_codex_cli() {
+  if [ "$INSTALL_CODEX" = "0" ]; then
+    return
+  fi
+
+  if has codex; then
+    codex_version="$(codex --version 2>/dev/null || true)"
+    if [ -n "$codex_version" ]; then
+      log "Codex CLI detected: $codex_version"
+    else
+      log "Codex CLI detected"
+    fi
+    return
+  fi
+
+  ensure_global_npm_prefix
+  log "Codex CLI not found; installing @openai/codex"
+  npm install -g @openai/codex@latest
+
+  if ! has codex; then
+    fail "Codex CLI installation completed but 'codex' is not on PATH. Add npm global bin to PATH, then rerun."
+  fi
+
+  codex_version="$(codex --version 2>/dev/null || true)"
+  if [ -n "$codex_version" ]; then
+    log "Codex CLI ready: $codex_version"
+  else
+    log "Codex CLI ready"
   fi
 }
 
@@ -410,6 +444,7 @@ EOF
 main() {
   log "FogAct bootstrap"
   ensure_node
+  ensure_codex_cli
 
   case "$INSTALL_METHOD" in
     npm) install_from_npm ;;
