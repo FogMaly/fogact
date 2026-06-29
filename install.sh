@@ -98,21 +98,61 @@ node_ok() {
   has node && has npm && [ "$(node_major)" -ge 16 ]
 }
 
+recover_apt_state() {
+  if ! has apt-get; then
+    return
+  fi
+
+  needs_recovery=0
+  dpkg_audit="$(dpkg --audit 2>/dev/null || true)"
+  if [ -n "$dpkg_audit" ]; then
+    needs_recovery=1
+  elif [ -f /var/lib/dpkg/updates/0000 ]; then
+    needs_recovery=1
+  elif [ -d /var/lib/dpkg/updates ] && find /var/lib/dpkg/updates -type f 2>/dev/null | grep -q .; then
+    needs_recovery=1
+  fi
+
+  if [ "$needs_recovery" = "1" ]; then
+    log "dpkg has pending updates; running dpkg --configure -a"
+    run_sudo dpkg --configure -a || fail "dpkg recovery failed. Run 'sudo dpkg --configure -a' manually, then rerun this installer."
+  fi
+}
+
+apt_update() {
+  if ! run_sudo apt-get update; then
+    warn "apt update failed; attempting dpkg/apt recovery"
+    recover_apt_state
+    run_sudo apt-get -f install -y || fail "apt dependency repair failed. Run 'sudo apt-get -f install -y' manually, then rerun this installer."
+    run_sudo apt-get update || fail "apt update failed. Run 'sudo dpkg --configure -a' and 'sudo apt-get -f install -y', then rerun this installer."
+  fi
+}
+
+apt_install() {
+  if ! run_sudo apt-get install -y "$@"; then
+    warn "apt install failed; attempting dpkg/apt recovery"
+    recover_apt_state
+    run_sudo apt-get -f install -y || fail "apt dependency repair failed. Run 'sudo apt-get -f install -y' manually, then rerun this installer."
+    run_sudo apt-get install -y "$@" || fail "apt install failed. Run 'sudo dpkg --configure -a' and 'sudo apt-get -f install -y', then rerun this installer."
+  fi
+}
+
 install_node_system() {
   log "Node.js 16+ not found; installing Node.js"
 
   if has apt-get; then
-    run_sudo apt-get update
-    run_sudo apt-get install -y ca-certificates curl gnupg
+    recover_apt_state
+    apt_update
+    apt_install ca-certificates curl gnupg
     if has curl; then
       if curl -fsSL https://deb.nodesource.com/setup_20.x | run_sudo bash -; then
-        run_sudo apt-get install -y nodejs
+        apt_install nodejs
       else
         warn "NodeSource setup failed; falling back to distro nodejs/npm"
-        run_sudo apt-get install -y nodejs npm
+        apt_install nodejs npm
       fi
     else
-      run_sudo apt-get install -y nodejs npm
+      apt_install nodejs npm
     fi
     return
   fi
